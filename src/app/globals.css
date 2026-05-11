@@ -24,3 +24,11 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Tienda: acordeón nativo sin triángulo por defecto del navegador */
+.catalog-accordion-summary::-webkit-details-marker {
+  display: none;
+}
+.catalog-accordion-summary {
+  list-style: none;
+}

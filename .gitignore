@@ -24,14 +24,30 @@
 .DS_Store
 *.pem
 
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE / local tooling
+.cursor/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
 # debug
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files (can opt-in for committing if needed)
-.env*
+# env files (keep templates committable)
+.env
+.env.*
+!.env.example
 
 # vercel
 .vercel
@@ -39,3 +55,10 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# eslint
+.eslintcache
+
+# Supabase CLI (local linked project / temp)
+supabase/.temp/
+supabase/.branches/
