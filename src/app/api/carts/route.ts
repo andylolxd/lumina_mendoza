@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/service'
+import { parseSharedCartItems } from '@/lib/shared-cart-items'
 
 export type SharedCartItem = {
   product_id: string
@@ -13,32 +14,16 @@ export type SharedCartItem = {
 
 export async function POST(req: Request) {
   try {
-    const body = (await req.json()) as { items?: SharedCartItem[] }
-    if (!Array.isArray(body.items) || body.items.length === 0) {
-      return NextResponse.json({ error: 'items vacío' }, { status: 400 })
-    }
-    for (const it of body.items) {
-      if (
-        typeof it.product_id !== 'string' ||
-        typeof it.name !== 'string' ||
-        typeof it.unit_price !== 'number' ||
-        typeof it.quantity !== 'number' ||
-        it.quantity < 1
-      ) {
-        return NextResponse.json({ error: 'item inválido' }, { status: 400 })
-      }
-      if (it.variant_id != null && typeof it.variant_id !== 'string') {
-        return NextResponse.json({ error: 'item inválido (variant_id)' }, { status: 400 })
-      }
-      if (it.variant_label != null && typeof it.variant_label !== 'string') {
-        return NextResponse.json({ error: 'item inválido (variant_label)' }, { status: 400 })
-      }
+    const body = (await req.json()) as { items?: unknown }
+    const parsed = parseSharedCartItems(body.items)
+    if (!parsed.ok) {
+      return NextResponse.json({ error: parsed.error }, { status: 400 })
     }
 
     const supabase = createServiceClient()
     const { data, error } = await supabase
       .from('shared_carts')
-      .insert({ items: body.items })
+      .insert({ items: parsed.items })
       .select('id')
       .single()
 

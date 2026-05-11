@@ -18,11 +18,16 @@ export type CartLine = {
   unitPrice: number
   quantity: number
   maxStock: number
+  /** Ruta en storage de la foto principal (misma que catálogo), para el panel del carrito. */
+  imagePath: string | null
   /** Categoría de tienda (primer nivel) para agrupar el carrito. */
   categoryId: string
   categoryName: string
   categorySortOrder: number
 }
+
+/** Tope práctico por línea (el stock real se valida al aceptar el pedido en admin). */
+const MAX_CART_LINE_QTY = 999
 
 function lineMatch(
   a: { productId: string; variantId: string | null },
@@ -40,6 +45,7 @@ type CartContextValue = {
     name: string
     unitPrice: number
     maxStock: number
+    imagePath: string | null
     categoryId: string
     categoryName: string
     categorySortOrder: number
@@ -63,6 +69,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       name: string
       unitPrice: number
       maxStock: number
+      imagePath: string | null
       categoryId: string
       categoryName: string
       categorySortOrder: number
@@ -70,8 +77,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setLines((prev) => {
         const i = prev.findIndex((l) => lineMatch(l, p))
         if (i === -1) {
-          const qty = Math.min(1, p.maxStock)
-          if (qty < 1) return prev
           return [
             ...prev,
             {
@@ -81,7 +86,8 @@ export function CartProvider({ children }: { children: ReactNode }) {
               name: p.name,
               unitPrice: p.unitPrice,
               maxStock: p.maxStock,
-              quantity: qty,
+              imagePath: p.imagePath,
+              quantity: 1,
               categoryId: p.categoryId,
               categoryName: p.categoryName,
               categorySortOrder: p.categorySortOrder,
@@ -89,10 +95,12 @@ export function CartProvider({ children }: { children: ReactNode }) {
           ]
         }
         const next = [...prev]
-        const q = Math.min(next[i]!.quantity + 1, p.maxStock)
+        const q = Math.min(next[i]!.quantity + 1, MAX_CART_LINE_QTY)
         next[i] = {
           ...next[i]!,
           quantity: q,
+          maxStock: p.maxStock,
+          imagePath: p.imagePath ?? next[i]!.imagePath,
           categoryId: p.categoryId,
           categoryName: p.categoryName,
           categorySortOrder: p.categorySortOrder,
@@ -112,7 +120,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       prev
         .map((l) =>
           lineMatch(l, { productId, variantId })
-            ? { ...l, quantity: Math.max(0, Math.floor(quantity)) }
+            ? { ...l, quantity: Math.min(MAX_CART_LINE_QTY, Math.max(0, Math.floor(quantity))) }
             : l,
         )
         .filter((l) => l.quantity > 0),

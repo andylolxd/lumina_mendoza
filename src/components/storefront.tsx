@@ -22,14 +22,22 @@ type CategoryView = Omit<CategoryRow, 'subcategories'> & {
 /** Referencia estable para `p.variants ?? []` y no disparar efectos en cada render. */
 const EMPTY_PRODUCT_VARIANTS: ProductVariantRow[] = []
 
-function isStoreVariantSelectable(v: Pick<ProductVariantRow, 'active' | 'stock_quantity'>) {
-  return (v.active ?? true) && v.stock_quantity >= 1
+function isStoreVariantListed(v: Pick<ProductVariantRow, 'active'>) {
+  return v.active ?? true
+}
+
+/** Talle por defecto: preferir con stock; si no hay, primer talle activo (se puede pedir igual). */
+function pickDefaultStoreVariantId(variants: ProductVariantRow[]) {
+  const listed = variants.filter((v) => isStoreVariantListed(v))
+  if (listed.length === 0) return null
+  const withStock = listed.find((v) => v.stock_quantity >= 1)
+  return (withStock ?? listed[0])!.id
 }
 
 function storeVariantDataKey(variants: ProductVariantRow[] | null | undefined) {
   const vs = variants ?? EMPTY_PRODUCT_VARIANTS
   return vs
-    .map((v) => `${v.id}:${v.stock_quantity}:${(v.active ?? true) ? '1' : '0'}`)
+    .map((v) => `${v.id}:${v.stock_quantity}:${isStoreVariantListed(v) ? '1' : '0'}`)
     .sort()
     .join('|')
 }
@@ -190,6 +198,8 @@ export function Storefront({
         `*Total:* ${formatMoneyArs(subtotal)}`,
         '',
         `Ver mi carrito: ${cartUrl}`,
+        '',
+        '_El stock del depósito lo confirma el local al aceptar el pedido._',
       ].join('\n')
 
       const phone = process.env.NEXT_PUBLIC_WHATSAPP_E164 ?? ''
@@ -229,6 +239,13 @@ export function Storefront({
                   className="rounded-lg border border-rose-800/50 bg-rose-950/40 px-2.5 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-900/50"
                 >
                   Stock
+                </Link>
+                <Link
+                  prefetch={false}
+                  href="/admin/pedidos"
+                  className="rounded-lg border border-rose-800/50 bg-rose-950/40 px-2.5 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-900/50"
+                >
+                  Pedidos
                 </Link>
                 <Link
                   prefetch={false}
@@ -329,43 +346,62 @@ export function Storefront({
                         {upperCategoryLabel(group.categoryName)}
                       </h3>
                       <ul className="space-y-4">
-                        {group.lines.map((l) => (
-                          <li
-                            key={`${l.productId}-${l.variantId ?? 'base'}`}
-                            className="flex flex-col gap-2 rounded-lg border border-zinc-800 p-3"
-                          >
-                            <div className="flex justify-between gap-2">
-                              <span className="text-sm font-medium">{l.name}</span>
-                              <button
-                                type="button"
-                                onClick={() => removeLine(l.productId, l.variantId)}
-                                className="text-xs text-rose-400 hover:underline"
-                              >
-                                Quitar
-                              </button>
-                            </div>
-                            <div className="flex items-center gap-2 text-sm">
-                              <button
-                                type="button"
-                                className="h-8 w-8 rounded border border-zinc-700"
-                                onClick={() => setQty(l.productId, l.variantId, l.quantity - 1)}
-                              >
-                                −
-                              </button>
-                              <span className="w-8 text-center">{l.quantity}</span>
-                              <button
-                                type="button"
-                                className="h-8 w-8 rounded border border-zinc-700"
-                                onClick={() => setQty(l.productId, l.variantId, l.quantity + 1)}
-                              >
-                                +
-                              </button>
-                              <span className="ml-auto text-rose-200">
-                                {formatMoneyArs(l.unitPrice * l.quantity)}
-                              </span>
-                            </div>
-                          </li>
-                        ))}
+                        {group.lines.map((l) => {
+                          const thumb = l.imagePath ? getPublicUrlFromPath(l.imagePath) : null
+                          return (
+                            <li
+                              key={`${l.productId}-${l.variantId ?? 'base'}`}
+                              className="flex flex-col gap-2 rounded-lg border border-zinc-800 p-3"
+                            >
+                              <div className="flex gap-3">
+                                {thumb ? (
+                                  // eslint-disable-next-line @next/next/no-img-element
+                                  <img
+                                    src={thumb}
+                                    alt=""
+                                    className="h-16 w-16 shrink-0 rounded-lg border border-zinc-700/80 object-cover"
+                                  />
+                                ) : (
+                                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-[9px] text-zinc-600">
+                                    sin foto
+                                  </div>
+                                )}
+                                <div className="min-w-0 flex-1">
+                                <div className="flex justify-between gap-2">
+                                  <span className="text-sm font-medium leading-snug">{l.name}</span>
+                                  <button
+                                    type="button"
+                                    onClick={() => removeLine(l.productId, l.variantId)}
+                                    className="shrink-0 text-xs text-rose-400 hover:underline"
+                                  >
+                                    Quitar
+                                  </button>
+                                </div>
+                                <div className="mt-2 flex items-center gap-2 text-sm">
+                                  <button
+                                    type="button"
+                                    className="h-8 w-8 rounded border border-zinc-700"
+                                    onClick={() => setQty(l.productId, l.variantId, l.quantity - 1)}
+                                  >
+                                    −
+                                  </button>
+                                  <span className="w-8 text-center">{l.quantity}</span>
+                                  <button
+                                    type="button"
+                                    className="h-8 w-8 rounded border border-zinc-700"
+                                    onClick={() => setQty(l.productId, l.variantId, l.quantity + 1)}
+                                  >
+                                    +
+                                  </button>
+                                  <span className="ml-auto text-rose-200">
+                                    {formatMoneyArs(l.unitPrice * l.quantity)}
+                                  </span>
+                                </div>
+                                </div>
+                              </div>
+                            </li>
+                          )
+                        })}
                       </ul>
                     </section>
                   ))}
@@ -379,6 +415,10 @@ export function Storefront({
                   {formatMoneyArs(subtotal)}
                 </span>
               </div>
+              <p className="mb-3 text-[11px] leading-snug text-zinc-500">
+                Podés pedir más cantidad de la que figura en depósito: el descuento de stock lo hace el local cuando
+                confirma el pago.
+              </p>
               <div className="flex gap-2">
                 <button
                   type="button"
@@ -649,27 +689,29 @@ function StoreProductLine({
   const variants = useMemo(() => p.variants ?? EMPTY_PRODUCT_VARIANTS, [p.variants])
   const hasVariants = variants.length > 0
 
-  const firstSelectableVariantId = useMemo(() => {
-    if (!hasVariants) return null
-    return variants.find((x) => isStoreVariantSelectable(x))?.id ?? null
-  }, [hasVariants, variants])
+  const defaultVariantId = useMemo(
+    () => (hasVariants ? pickDefaultStoreVariantId(variants) : null),
+    [hasVariants, variants],
+  )
 
-  const [variantId, setVariantId] = useState<string | null>(() => {
-    const vs = p.variants ?? EMPTY_PRODUCT_VARIANTS
-    return vs.find((x) => isStoreVariantSelectable(x))?.id ?? null
-  })
+  const [variantId, setVariantId] = useState<string | null>(() =>
+    pickDefaultStoreVariantId(p.variants ?? EMPTY_PRODUCT_VARIANTS),
+  )
+
+  useEffect(() => {
+    if (!hasVariants) return
+    const stillOk =
+      variantId != null && variants.some((v) => v.id === variantId && isStoreVariantListed(v))
+    if (!stillOk && defaultVariantId != null) setVariantId(defaultVariantId)
+  }, [hasVariants, variants, variantId, defaultVariantId])
 
   const selected = variantId ? (variants.find((v) => v.id === variantId) ?? null) : null
-  const maxStock = hasVariants
-    ? selected && isStoreVariantSelectable(selected)
-      ? selected.stock_quantity
-      : 0
-    : p.stock_quantity
+  const displayStock = hasVariants ? (selected ? selected.stock_quantity : 0) : p.stock_quantity
   const cartVid = hasVariants ? variantId : null
   const qty =
     lines.find((l) => l.productId === p.id && (l.variantId ?? null) === (cartVid ?? null))?.quantity ?? 0
-  const atMax = qty >= maxStock
-  const disabled = maxStock < 1
+  const noActiveVariants = hasVariants && !variants.some((v) => isStoreVariantListed(v))
+  const addBlocked = noActiveVariants
   const unitPrice = Number(p.price)
   const paths = collectProductImagePaths(p)
   const thumbUrl = paths[0] ? getPublicUrlFromPath(paths[0]) : null
@@ -729,25 +771,30 @@ function StoreProductLine({
                   autoComplete="off"
                   className="mt-1 w-full max-w-[12rem] rounded-lg border border-zinc-600 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100"
                   value={variantId ?? ''}
-                  disabled={firstSelectableVariantId == null}
+                  disabled={noActiveVariants}
                   onChange={(e) => {
                     const next = e.target.value
                     setVariantId(next.length > 0 ? next : null)
                   }}
                 >
-                  {firstSelectableVariantId == null ? (
-                    <option value="">Sin talles disponibles</option>
-                  ) : null}
+                  {noActiveVariants ? <option value="">Sin talles disponibles</option> : null}
                   {variants.map((v) => (
-                    <option key={v.id} value={v.id} disabled={!isStoreVariantSelectable(v)}>
+                    <option key={v.id} value={v.id} disabled={!isStoreVariantListed(v)}>
                       {v.size_label}
+                      {isStoreVariantListed(v) && v.stock_quantity < 1 ? ' (sin stock en depósito)' : ''}
                     </option>
                   ))}
                 </select>
               </div>
             ) : null}
-            {disabled ? (
+            {noActiveVariants ? (
               <p className="mt-1 text-xs text-zinc-500">No disponible por el momento</p>
+            ) : null}
+            {!noActiveVariants ? (
+              <p className="mt-1 text-[11px] text-zinc-500">
+                Stock en depósito: <span className="tabular-nums text-zinc-400">{displayStock}</span> (podés pedir
+                más; se confirma al pagar)
+              </p>
             ) : null}
             <div className="mt-2 flex items-center gap-2">
               <button
@@ -764,21 +811,23 @@ function StoreProductLine({
               </span>
               <button
                 type="button"
-                disabled={disabled || atMax}
+                disabled={addBlocked}
                 aria-label="Sumar uno al carrito"
-                onClick={() =>
+                onClick={() => {
+                  const firstPath = collectProductImagePaths(p)[0] ?? null
                   addLine({
                     productId: p.id,
                     variantId: cartVid,
                     variantLabel: selected?.size_label ?? null,
                     name: displayName,
                     unitPrice,
-                    maxStock,
+                    maxStock: displayStock,
+                    imagePath: firstPath,
                     categoryId: storeCategoryMeta.id,
                     categoryName: storeCategoryMeta.name,
                     categorySortOrder: storeCategoryMeta.sortOrder,
                   })
-                }
+                }}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-rose-500/60 bg-gradient-to-b from-rose-600 to-rose-800 text-lg font-semibold leading-none text-white shadow-md shadow-rose-950/40 transition hover:from-rose-500 hover:to-rose-700 active:scale-95 disabled:pointer-events-none disabled:opacity-35"
               >
                 +

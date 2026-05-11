@@ -21,6 +21,9 @@ export default async function DashLayout({
           <Link prefetch={false} href="/admin/stock" className="text-zinc-300 hover:text-white">
             Stock
           </Link>
+          <Link prefetch={false} href="/admin/pedidos" className="text-zinc-300 hover:text-white">
+            Pedidos
+          </Link>
           <Link prefetch={false} href="/admin/equipo" className="text-zinc-300 hover:text-white">
             Equipo
           </Link>

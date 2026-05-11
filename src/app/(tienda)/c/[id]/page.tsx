@@ -1,7 +1,18 @@
-import { formatMoneyArs } from '@/lib/format'
 import { createServiceClient } from '@/lib/supabase/service'
+import { getAdminEmailIfSession } from '@/lib/admin-optional'
 import Link from 'next/link'
+import { SharedCartAcceptedClientNotify } from '@/components/shared-cart-accepted-client-notify'
+import { SharedCartAdminBar } from '@/components/shared-cart-admin-bar'
+import { SharedCartView, type SharedCartProductVisual } from '@/components/shared-cart-view'
 import type { SharedCartItem } from '@/app/api/carts/route'
+import { collectProductImagePaths } from '@/lib/product-images'
+
+type CartStatus = 'pending' | 'accepted' | 'rejected'
+
+function normalizeStatus(s: string | null | undefined): CartStatus {
+  if (s === 'accepted' || s === 'rejected') return s
+  return 'pending'
+}
 
 export default async function SharedCartPage({
   params,
@@ -11,24 +22,64 @@ export default async function SharedCartPage({
   const { id } = await params
   let items: SharedCartItem[] = []
   let err = false
+  let status: CartStatus = 'pending'
+  let acceptedAt: string | null = null
+  let acceptedBy: string | null = null
+  let customerWhatsappE164: string | null = null
+
   try {
     const sb = createServiceClient()
     const { data, error } = await sb
       .from('shared_carts')
-      .select('items, expires_at')
+      .select('items, expires_at, status, accepted_at, accepted_by_email, customer_whatsapp_e164')
       .eq('id', id)
       .maybeSingle()
     if (error || !data) err = true
-    else if (Array.isArray(data.items)) items = data.items as SharedCartItem[]
+    else {
+      if (Array.isArray(data.items)) items = data.items as SharedCartItem[]
+      status = normalizeStatus((data as { status?: string }).status)
+      acceptedAt = (data as { accepted_at?: string | null }).accepted_at ?? null
+      acceptedBy = (data as { accepted_by_email?: string | null }).accepted_by_email ?? null
+      customerWhatsappE164 =
+        (data as { customer_whatsapp_e164?: string | null }).customer_whatsapp_e164?.replace(/\D/g, '') ?? null
+      if (customerWhatsappE164 === '') customerWhatsappE164 = null
+    }
   } catch {
     err = true
   }
 
-  const total = items.reduce((s, i) => s + Number(i.unit_price) * i.quantity, 0)
+  const adminEmail = await getAdminEmailIfSession()
+  const isAdmin = adminEmail != null
+
+  const productIds = [...new Set(items.map((i) => i.product_id).filter(Boolean))]
+  let productVisuals: SharedCartProductVisual[] = []
+  if (!err && productIds.length > 0) {
+    try {
+      const sb = createServiceClient()
+      const { data: prows } = await sb
+        .from('products')
+        .select('id,name,description,price,image_path,image_gallery')
+        .in('id', productIds)
+      for (const row of prows ?? []) {
+        productVisuals.push({
+          product_id: row.id,
+          name: row.name,
+          description: row.description,
+          price: Number(row.price),
+          imagePaths: collectProductImagePaths({
+            image_path: row.image_path,
+            image_gallery: row.image_gallery,
+          }),
+        })
+      }
+    } catch {
+      productVisuals = []
+    }
+  }
 
   return (
     <div className="min-h-screen bg-zinc-950 px-4 py-10 text-zinc-100">
-      <div className="mx-auto max-w-md">
+      <div className="mx-auto max-w-3xl">
         <p className="mb-4 text-center text-sm text-rose-300">
           Lumina Mendoza — carrito compartido
         </p>
@@ -36,23 +87,50 @@ export default async function SharedCartPage({
           <p className="text-center text-zinc-400">No se encontró este carrito.</p>
         ) : (
           <>
-            <ul className="space-y-3 rounded-xl border border-zinc-800 bg-zinc-900/50 p-4">
-              {items.map((it, i) => (
-                <li key={`${it.product_id}-${i}`} className="text-sm">
-                  <span className="font-medium">{it.name}</span>
-                  <span className="text-zinc-400"> × {it.quantity}</span>
-                  <div className="text-rose-200">
-                    {formatMoneyArs(Number(it.unit_price) * it.quantity)}{' '}
-                    <span className="text-xs text-zinc-500">
-                      ({formatMoneyArs(Number(it.unit_price))} c/u)
-                    </span>
-                  </div>
-                </li>
-              ))}
-            </ul>
-            <p className="mt-4 flex justify-between border-t border-zinc-800 pt-4 text-base font-semibold">
-              Total <span>{formatMoneyArs(total)}</span>
-            </p>
+            <div
+              className={`mb-6 rounded-lg border px-3 py-2 text-center text-sm ${
+                status === 'pending'
+                  ? 'border-amber-800/50 bg-amber-950/25 text-amber-100'
+                  : status === 'accepted'
+                    ? 'border-green-800/50 bg-green-950/20 text-green-100'
+                    : 'border-zinc-700 bg-zinc-900/50 text-zinc-400'
+              }`}
+            >
+              {status === 'pending'
+                ? 'Pedido pendiente: el stock se descuenta cuando el local acepta la venta.'
+                : status === 'accepted'
+                  ? `Venta aceptada${acceptedAt ? ` el ${new Date(acceptedAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}` : ''}${acceptedBy ? ` · ${acceptedBy}` : ''}.`
+                  : 'Este pedido fue rechazado o cancelado.'}
+            </div>
+
+            <SharedCartView
+              cartId={id}
+              initialItems={items}
+              productVisuals={productVisuals}
+              status={status}
+              isAdmin={isAdmin}
+              initialCustomerWhatsappE164={customerWhatsappE164}
+            />
+
+            {isAdmin && status === 'accepted' ? (
+              <SharedCartAcceptedClientNotify
+                cartId={id}
+                items={items}
+                initialCustomerWhatsappE164={customerWhatsappE164}
+              />
+            ) : null}
+
+            {isAdmin && status === 'pending' ? <SharedCartAdminBar cartId={id} status={status} /> : null}
+            {isAdmin ? (
+              <p className="mt-6 text-center">
+                <Link
+                  href="/admin/pedidos"
+                  className="text-sm text-rose-400 underline hover:text-rose-300"
+                >
+                  Ir a Pedidos (panel)
+                </Link>
+              </p>
+            ) : null}
           </>
         )}
         <Link
