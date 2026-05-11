@@ -93,7 +93,7 @@ function toggleSectionExpanded(
 }
 
 const sectionHeaderHitAreaClass =
-  'flex min-w-0 flex-1 cursor-pointer select-none items-center gap-2 rounded-lg border border-transparent px-1 py-1.5 transition hover:border-zinc-600/50 hover:bg-zinc-800/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40'
+  'flex min-w-0 flex-1 cursor-pointer select-none items-start gap-2 rounded-lg border border-transparent px-1 py-1.5 transition hover:border-zinc-600/50 hover:bg-zinc-800/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40'
 
 function CollapseChevron({ expanded }: { expanded: boolean }) {
   return (
@@ -175,7 +175,7 @@ function CatalogRubroNameHeader({
           }
         }}
       >
-        <span className={`shrink-0 rounded-md ${chevronBoxClass}`} aria-hidden>
+        <span className={`mt-0.5 shrink-0 self-start rounded-md ${chevronBoxClass}`} aria-hidden>
           <CollapseChevron expanded={open} />
         </span>
         {editing ? (
@@ -193,12 +193,20 @@ function CatalogRubroNameHeader({
             {titleSuffix ? <span className="shrink-0">{titleSuffix}</span> : null}
           </>
         ) : (
-          <span className="flex min-w-0 flex-1 items-baseline gap-x-2 overflow-hidden">
-            <span className={`min-w-0 truncate ${titleClassName}`}>{upperCategoryLabel(name)}</span>
-            {titleSuffix}
-          </span>
+          <div className="flex min-w-0 flex-1 flex-col gap-0.5 sm:flex-row sm:items-baseline sm:gap-x-2 sm:overflow-hidden">
+            <span className="flex min-w-0 items-baseline gap-x-2 sm:min-w-0 sm:flex-1 sm:overflow-hidden">
+              <span
+                className={`min-w-0 max-sm:whitespace-normal max-sm:break-words sm:truncate ${titleClassName}`}
+              >
+                {upperCategoryLabel(name)}
+              </span>
+              {titleSuffix}
+            </span>
+            {!open && !editing ? (
+              <span className="max-sm:w-full max-sm:shrink-0 sm:shrink-0">{statsWhenCollapsed}</span>
+            ) : null}
+          </div>
         )}
-        {!open && !editing ? statsWhenCollapsed : null}
       </div>
       <div className="flex shrink-0 flex-wrap items-center gap-2">
         {editing ? (
