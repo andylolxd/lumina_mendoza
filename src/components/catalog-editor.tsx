@@ -14,6 +14,7 @@ import type {
 import { useRouter } from 'next/navigation'
 import {
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -941,8 +942,13 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
 
       <form onSubmit={addCategory} className="flex flex-wrap items-end gap-2 rounded-xl border border-zinc-800 p-4">
         <div>
-          <label className="text-xs text-zinc-500">Nueva categoría</label>
+          <label htmlFor="catalog-new-category-name" className="text-xs text-zinc-500">
+            Nueva categoría
+          </label>
           <input
+            id="catalog-new-category-name"
+            name="newCategoryName"
+            autoComplete="off"
             className="mt-1 block rounded border border-zinc-700 bg-zinc-900 px-2 py-1.5 text-sm"
             value={catName}
             onChange={(e) => setCatName(e.target.value.toLocaleUpperCase('es-AR'))}
@@ -1964,6 +1970,8 @@ function SubcategoryForm({
   buttonLabel?: string
   placeholder?: string
 }) {
+  const id = useId()
+  const inputId = `${id}-subcategory-name`
   const [name, setName] = useState('')
   return (
     <form
@@ -1974,8 +1982,19 @@ function SubcategoryForm({
         setName('')
       }}
     >
-      {hint ? <span className="w-full text-[10px] text-zinc-500">{hint}</span> : null}
+      {hint ? (
+        <label htmlFor={inputId} className="w-full cursor-pointer text-[10px] text-zinc-500">
+          {hint}
+        </label>
+      ) : (
+        <label htmlFor={inputId} className="sr-only">
+          Nombre del rubro
+        </label>
+      )}
       <input
+        id={inputId}
+        name="subcategoryName"
+        autoComplete="off"
         className="rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
         placeholder={placeholder ?? 'NOMBRE SUBCATEGORÍA'}
         value={name}
@@ -2004,6 +2023,11 @@ function ProductAddForm({
     description: string
   }) => void
 }) {
+  const id = useId()
+  const nameId = `${id}-product-name`
+  const priceId = `${id}-product-price`
+  const stockId = `${id}-product-stock`
+  const descId = `${id}-product-description`
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
   const [stock, setStock] = useState('0')
@@ -2021,25 +2045,51 @@ function ProductAddForm({
         setDescription('')
       }}
     >
+      <label htmlFor={nameId} className="sr-only">
+        Nombre del producto
+      </label>
       <input
+        id={nameId}
+        name="productName"
+        autoComplete="off"
         className="rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
         placeholder="Producto"
         value={name}
         onChange={(e) => setName(e.target.value)}
       />
+      <label htmlFor={priceId} className="sr-only">
+        Precio
+      </label>
       <input
+        id={priceId}
+        name="productPrice"
+        inputMode="decimal"
+        autoComplete="off"
         className="w-28 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
         placeholder="Precio"
         value={price}
         onChange={(e) => setPrice(e.target.value)}
       />
+      <label htmlFor={stockId} className="sr-only">
+        Stock
+      </label>
       <input
+        id={stockId}
+        name="productStock"
+        inputMode="numeric"
+        autoComplete="off"
         className="w-24 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
         placeholder="Stock"
         value={stock}
         onChange={(e) => setStock(e.target.value)}
       />
+      <label htmlFor={descId} className="sr-only">
+        Descripción (opcional)
+      </label>
       <input
+        id={descId}
+        name="productDescription"
+        autoComplete="off"
         className="min-w-[140px] flex-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
         placeholder="Descripción (opcional)"
         value={description}
