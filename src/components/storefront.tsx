@@ -61,6 +61,12 @@ function storeVariantDataKey(variants: ProductVariantRow[] | null | undefined) {
 const collapseAllBtnClass =
   'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
 
+const INAUGURATION_PROMO_BG = '/images/oferta-inauguracion-bg.png'
+
+/** Misma base vertical que el botón colapsar (py-2); el texto va en una frase compacta. */
+const inaugurationPromoBannerClass =
+  'relative flex min-h-[2.75rem] min-w-0 flex-1 items-center overflow-hidden rounded-lg border border-amber-400/50 bg-zinc-950/25 px-3 py-2 shadow-md ring-1 ring-amber-400/30'
+
 /** Summary categoría: hero visual (lógica `<details>` intacta). Subcategorías siguen usando sus clases propias. */
 const storeCatalogSummaryCategoryClass =
   'catalog-accordion-summary relative flex min-h-[140px] w-full cursor-pointer list-none items-center justify-between gap-3 overflow-hidden rounded-t-3xl border-0 transition-[filter] duration-200 hover:brightness-[1.03] active:brightness-[0.98] group-open:rounded-b-none sm:min-h-[160px]'
@@ -216,16 +222,44 @@ export function Storefront({
                 </p>
               ) : (
                 <>
-                  <div className="flex justify-end">
-                    {showExpandAll ? (
-                      <button type="button" className={collapseAllBtnClass} onClick={handleExpandAll}>
-                        Abrir todo
-                      </button>
-                    ) : (
-                      <button type="button" className={collapseAllBtnClass} onClick={handleCollapseAll}>
-                        Contraer todo
-                      </button>
-                    )}
+                  <div className="flex items-center gap-2 sm:gap-3">
+                    <div
+                      role="region"
+                      aria-label="Promoción por inauguración: 10% OFF, tiempo limitado"
+                      className={inaugurationPromoBannerClass}
+                      style={{
+                        backgroundImage: `url(${INAUGURATION_PROMO_BG})`,
+                        backgroundSize: 'cover',
+                        backgroundPosition: 'center',
+                      }}
+                    >
+                      <div
+                        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-amber-950/25"
+                        aria-hidden
+                      />
+                      <div className="relative z-10 min-w-0 leading-snug">
+                        <p className="text-[11px] font-semibold sm:text-sm">
+                          <span className="font-extrabold tracking-tight text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                            🎉 10% OFF por inauguración
+                          </span>
+                          <span className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+                            {' '}
+                            · tiempo limitado 🎉
+                          </span>
+                        </p>
+                      </div>
+                    </div>
+                    <div className="flex shrink-0 items-center">
+                      {showExpandAll ? (
+                        <button type="button" className={collapseAllBtnClass} onClick={handleExpandAll}>
+                          Abrir todo
+                        </button>
+                      ) : (
+                        <button type="button" className={collapseAllBtnClass} onClick={handleCollapseAll}>
+                          Contraer todo
+                        </button>
+                      )}
+                    </div>
                   </div>
                   <div className="space-y-5 sm:space-y-6">
                     {sortedCategories.map((cat) => (
