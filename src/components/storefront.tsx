@@ -74,7 +74,7 @@ const storeCatalogSummarySubsubClass =
 /** Contador de productos activos a la derecha (misma idea en categoría, subcategoría y sub-sub). */
 const storeAccordionCountBadgeBase =
   'inline-flex min-h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums leading-none'
-const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border border-white/40 bg-zinc-200/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.06),0_2px_10px_rgba(0,0,0,0.22)] backdrop-blur-md [text-shadow:0_1px_2px_rgba(0,0,0,0.55)]`
+const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border border-white/40 bg-zinc-200/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.06),0_2px_10px_rgba(0,0,0,0.22)] backdrop-blur-sm [text-shadow:0_1px_2px_rgba(0,0,0,0.55)]`
 const storeAccordionCountSub = `${storeAccordionCountBadgeBase} border-zinc-500/75 bg-zinc-950/85 text-zinc-100 shadow-sm shadow-black/15`
 const storeAccordionCountSubsub = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-black/35 text-rose-50 shadow-sm shadow-rose-950/20`
 
