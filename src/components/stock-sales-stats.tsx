@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/browser'
 import { formatMoneyArs } from '@/lib/format'
+import { storeCatalogFrameSubClass } from '@/lib/store-theme'
 import { useCallback, useEffect, useMemo, useState, type MutableRefObject } from 'react'
 import type { InPersonSaleRow } from '@/components/stock-sales-history'
 
@@ -224,10 +225,13 @@ export function StockSalesStats({
     setWeekdayOn(Array(7).fill(true))
   }
 
+  const presetRangeBtnClass =
+    'rounded border border-zinc-500/60 bg-zinc-500/85 px-2 py-1 text-xs text-white shadow-sm hover:bg-zinc-400/90'
+
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <section className={`${storeCatalogFrameSubClass} p-4`}>
       <h2 className="text-lg font-semibold text-violet-100">Estadísticas</h2>
-      <p className="mt-1 text-xs text-zinc-500">
+      <p className="mt-1 text-xs text-white">
         Resumen según rango de fechas. Podés filtrar por día de la semana y por quién registró la
         venta (nombre en admin_users.display_name).
       </p>
@@ -236,7 +240,7 @@ export function StockSalesStats({
         <div>
           <label
             htmlFor="stock-stats-from"
-            className="block text-[10px] font-medium uppercase text-zinc-500"
+            className="block text-[10px] font-medium uppercase text-white"
           >
             Desde
           </label>
@@ -246,13 +250,13 @@ export function StockSalesStats({
             type="date"
             value={from}
             onChange={(e) => setFrom(e.target.value)}
-            className="mt-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+            className="mt-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100"
           />
         </div>
         <div>
           <label
             htmlFor="stock-stats-to"
-            className="block text-[10px] font-medium uppercase text-zinc-500"
+            className="block text-[10px] font-medium uppercase text-white"
           >
             Hasta
           </label>
@@ -262,7 +266,7 @@ export function StockSalesStats({
             type="date"
             value={to}
             onChange={(e) => setTo(e.target.value)}
-            className="mt-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+            className="mt-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100"
           />
         </div>
         <button
@@ -276,13 +280,13 @@ export function StockSalesStats({
       </div>
 
       <div className="mt-3 flex flex-wrap gap-2">
-        <span className="w-full text-[10px] font-medium uppercase text-zinc-500">Rango rápido</span>
+        <span className="w-full text-[10px] font-medium uppercase text-white">Rango rápido</span>
         {[7, 14, 30, 90].map((n) => (
           <button
             key={n}
             type="button"
             onClick={() => setPresetDays(n)}
-            className="rounded border border-zinc-600 px-2 py-1 text-xs text-zinc-300 hover:bg-zinc-800"
+            className={presetRangeBtnClass}
           >
             Últimos {n} días
           </button>
@@ -291,18 +295,18 @@ export function StockSalesStats({
 
       <div className="mt-4">
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-[10px] font-medium uppercase text-zinc-500">Días de semana</span>
+          <span className="text-[10px] font-medium uppercase text-white">Días de semana</span>
           <button
             type="button"
             onClick={selectAllWeekdays}
-            className="text-[11px] text-violet-300 underline-offset-2 hover:underline"
+            className="text-[11px] text-white underline-offset-2 hover:underline"
           >
             Todos
           </button>
           <button
             type="button"
             onClick={selectOnlyWeekend}
-            className="text-[11px] text-violet-300 underline-offset-2 hover:underline"
+            className="text-[11px] text-white underline-offset-2 hover:underline"
           >
             Solo sáb y dom
           </button>
@@ -314,8 +318,8 @@ export function StockSalesStats({
               htmlFor={`stock-stats-weekday-${i}`}
               className={`flex cursor-pointer items-center gap-1.5 rounded border px-2 py-1 text-xs ${
                 weekdayOn[i]
-                  ? 'border-violet-500/60 bg-violet-950/40 text-violet-100'
-                  : 'border-zinc-700 bg-zinc-950 text-zinc-500'
+                  ? 'border-violet-500/60 bg-violet-950/40 text-white'
+                  : 'border-zinc-700 bg-zinc-950 text-white/75'
               }`}
             >
               <input
@@ -331,14 +335,14 @@ export function StockSalesStats({
           ))}
         </div>
         {!allWeekdaysOn ? (
-          <p className="mt-1 text-[11px] text-zinc-500">
+          <p className="mt-1 text-[11px] text-white">
             Solo se cuentan ventas cuya fecha cae en los días marcados.
           </p>
         ) : null}
       </div>
 
       <div className="mt-4">
-        <label htmlFor="stats-admin" className="block text-[10px] font-medium uppercase text-zinc-500">
+        <label htmlFor="stats-admin" className="block text-[10px] font-medium uppercase text-white">
           Vendedor (admin)
         </label>
         <select
@@ -346,7 +350,7 @@ export function StockSalesStats({
           name="stock_stats_admin_filter"
           value={adminFilter}
           onChange={(e) => setAdminFilter(e.target.value)}
-          className="mt-1 max-w-xs rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
+          className="mt-1 max-w-xs rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm text-zinc-100"
         >
           <option value="">Todos</option>
           {adminOptions.map((o) => (
@@ -379,25 +383,25 @@ export function StockSalesStats({
         <div className="space-y-4 p-3">
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <div className="text-[10px] uppercase text-zinc-500">Ventas (registros)</div>
+              <div className="text-[10px] uppercase text-white">Ventas (registros)</div>
               <div className="mt-1 text-2xl font-semibold text-zinc-100">{stats.saleCount}</div>
             </div>
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <div className="text-[10px] uppercase text-zinc-500">Total $</div>
+              <div className="text-[10px] uppercase text-white">Total $</div>
               <div className="mt-1 text-xl font-semibold text-violet-200">
                 {formatMoneyArs(stats.totalMoney)}
               </div>
             </div>
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <div className="text-[10px] uppercase text-zinc-500">Unidades (líneas)</div>
+              <div className="text-[10px] uppercase text-white">Unidades (líneas)</div>
               <div className="mt-1 text-2xl font-semibold text-zinc-100">{stats.lineCount}</div>
             </div>
             <div className="rounded-lg border border-zinc-800 bg-zinc-900/50 p-3">
-              <div className="text-[10px] uppercase text-zinc-500">Sáb + dom (en filtros)</div>
+              <div className="text-[10px] uppercase text-white">Sáb + dom (en filtros)</div>
               <div className="mt-1 text-lg font-semibold text-emerald-200">
                 {formatMoneyArs(stats.sumSatSunOnly)}
               </div>
-              <div className="mt-0.5 text-[10px] text-zinc-500">
+              <div className="mt-0.5 text-[10px] text-white">
                 Suma de ventas en sábado y domingo (respeta rango, toggles de día y filtro de admin).
               </div>
             </div>
@@ -433,7 +437,7 @@ export function StockSalesStats({
             <h3 className="text-sm font-semibold text-zinc-200">Productos más vendidos (unidades)</h3>
             <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto rounded border border-zinc-800 p-2 text-xs">
               {stats.topProducts.length === 0 ? (
-                <li className="text-zinc-500">Sin datos en el filtro actual.</li>
+                <li className="text-white">Sin datos en el filtro actual.</li>
               ) : (
                 stats.topProducts.map((p) => (
                   <li

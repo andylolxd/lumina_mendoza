@@ -5,6 +5,11 @@ import { formatCatalogPath } from '@/lib/catalog-tree'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { collectProductImagePaths } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
+import {
+  storeCatalogFrameCategoryClass,
+  storeCatalogFrameSubClass,
+  storeCatalogFrameSubsubClass,
+} from '@/lib/store-theme'
 import type { CategoryRow, ProductRow, SubcategoryRow, SubsubcategoriaRow } from '@/types/catalog'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 
@@ -122,15 +127,6 @@ const storeAccordionCountBadgeBase =
 const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-rose-950/70 text-rose-50 shadow-sm shadow-black/20`
 const storeAccordionCountSub = `${storeAccordionCountBadgeBase} border-zinc-500/75 bg-zinc-950/85 text-zinc-100 shadow-sm shadow-black/15`
 const storeAccordionCountSubsub = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-black/35 text-rose-50 shadow-sm shadow-rose-950/20`
-
-const frameCategory =
-  'group scroll-mt-2 overflow-hidden rounded-xl border-2 border-rose-900/45 bg-zinc-900/35 shadow-md shadow-black/20 ring-1 ring-zinc-800/40 transition-[border-color,box-shadow] duration-200 open:border-rose-500/55 open:ring-2 open:ring-rose-500/20'
-
-const frameSub =
-  'group overflow-hidden rounded-lg border-2 border-zinc-800/90 bg-zinc-950/25 shadow-sm ring-1 ring-zinc-800/35 transition-[border-color] duration-200 open:border-amber-700/45 open:ring-1 open:ring-amber-600/25'
-
-const frameSubsub =
-  'group overflow-hidden rounded-md border-2 border-rose-900/35 bg-zinc-950/20 shadow-sm ring-1 ring-zinc-800/30 transition-[border-color] duration-200 open:border-rose-500/40 open:bg-rose-950/10'
 
 const summaryCategory =
   'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 border-b border-rose-900/30 bg-gradient-to-r from-rose-950/40 to-zinc-900/40 px-3 py-2.5 transition hover:from-rose-900/45 hover:to-zinc-800/50'
@@ -385,17 +381,14 @@ export function StockMozo({
     q.trim().length > 0 ? `${productCount} / ${totalInCatalog}` : String(productCount)
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <section className={`${storeCatalogFrameSubClass} p-4`}>
       <h2 className="text-lg font-semibold text-amber-100">Venta en persona</h2>
-      <p className="mt-1 text-xs text-zinc-500">
-        Misma selección que la tienda (+/−); lo que sumás va al ticket actual (venta en persona).
-      </p>
 
       <details
         ref={catalogRef}
         open
         onToggle={panelToggle}
-        className="group mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/30 open:shadow-sm"
+        className={`group mt-3 ${storeCatalogFrameSubClass}`}
       >
         <summary className="catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 rounded-t-lg border-b border-zinc-800 bg-zinc-950/60 px-3 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-zinc-900/80">
           <span>
@@ -438,7 +431,7 @@ export function StockMozo({
                     0,
                   )
                   return (
-                    <details key={cat.id} data-stock-branch className={frameCategory}>
+                    <details key={cat.id} data-stock-branch className={storeCatalogFrameCategoryClass}>
                       <summary className={summaryCategory}>
                         <span className="min-w-0 text-left">
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-300/90">
@@ -464,7 +457,7 @@ export function StockMozo({
                         {cat.subcategories.map((sub) => {
                           const nSub = countProductsInSub(sub)
                           return (
-                            <details key={sub.id} data-stock-branch className={frameSub}>
+                            <details key={sub.id} data-stock-branch className={storeCatalogFrameSubClass}>
                               <summary className={summarySub}>
                                 <span className="min-w-0 text-left">
                                   <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -509,7 +502,7 @@ export function StockMozo({
                                         <details
                                           key={ss.id}
                                           data-stock-branch
-                                          className={frameSubsub}
+                                          className={storeCatalogFrameSubsubClass}
                                         >
                                           <summary className={summarySubsub}>
                                             <span className="min-w-0 text-left">
@@ -569,7 +562,7 @@ export function StockMozo({
         ref={ticketRef}
         open
         onToggle={panelToggle}
-        className="group mt-4 overflow-hidden rounded-lg border border-amber-900/50 bg-amber-950/30 open:shadow-md"
+        className={`group mt-4 ${storeCatalogFrameSubClass}`}
       >
         <summary className="catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 rounded-t-lg border-b border-amber-900/40 bg-amber-950/40 px-3 py-2.5 text-sm font-medium text-amber-100 transition hover:bg-amber-950/55">
           <span>Ticket actual</span>
@@ -584,7 +577,7 @@ export function StockMozo({
         </summary>
         <div className="p-3">
           {lines.length === 0 ? (
-            <p className="text-xs text-zinc-500">Vacío</p>
+            <p className="text-xs text-white">Vacío</p>
           ) : (
             <ul className="space-y-2 text-sm">
               {lines.map((l) => (
@@ -620,13 +613,10 @@ export function StockMozo({
             type="button"
             disabled={lines.length === 0 || busy}
             onClick={() => void confirmSale()}
-            className="mt-3 w-full rounded-lg bg-amber-600 py-2 text-sm font-medium text-white hover:bg-amber-500 disabled:opacity-40"
+            className="mt-3 w-full rounded-lg border border-amber-500/90 bg-amber-500 py-2.5 text-sm font-semibold text-white shadow-md hover:bg-amber-400 disabled:opacity-40"
           >
-            {busy ? 'Guardando…' : 'Confirmar venta (descontar stock)'}
+            {busy ? 'Guardando…' : 'Confirmar venta'}
           </button>
-          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
-            Al confirmar, el servidor descuenta el stock de cada producto en la base de datos.
-          </p>
         </div>
       </details>
     </section>

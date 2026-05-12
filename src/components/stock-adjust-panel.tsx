@@ -10,6 +10,11 @@ import {
   sortCatalogStockAdminView,
   type CategoryView,
 } from '@/lib/stock-catalog-view'
+import {
+  storeCatalogFrameCategoryClass,
+  storeCatalogFrameSubClass,
+  storeCatalogFrameSubsubClass,
+} from '@/lib/store-theme'
 import type { CategoryRow, ProductRow, SubcategoryRow } from '@/types/catalog'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
@@ -30,13 +35,6 @@ const storeAccordionCountBadgeBase =
 const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-rose-950/70 text-rose-50 shadow-sm shadow-black/20`
 const storeAccordionCountSub = `${storeAccordionCountBadgeBase} border-zinc-500/75 bg-zinc-950/85 text-zinc-100 shadow-sm shadow-black/15`
 const storeAccordionCountSubsub = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-black/35 text-rose-50 shadow-sm shadow-rose-950/20`
-
-const frameCategory =
-  'group scroll-mt-2 overflow-hidden rounded-xl border-2 border-emerald-900/40 bg-zinc-900/35 shadow-md ring-1 ring-zinc-800/40 open:border-emerald-500/45'
-const frameSub =
-  'group overflow-hidden rounded-lg border-2 border-zinc-800/90 bg-zinc-950/25 shadow-sm ring-1 ring-zinc-800/35 open:border-emerald-700/40'
-const frameSubsub =
-  'group overflow-hidden rounded-md border-2 border-emerald-900/30 bg-zinc-950/20 ring-1 ring-zinc-800/30 open:border-emerald-500/35'
 
 const summaryCategory =
   'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 border-b border-emerald-900/30 bg-gradient-to-r from-emerald-950/35 to-zinc-900/40 px-3 py-2.5'
@@ -245,20 +243,16 @@ export function StockAdjustPanel({
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <section className={`${storeCatalogFrameSubClass} p-4`}>
       <h2 className="text-lg font-semibold text-emerald-100">Ajuste de stock</h2>
-      <p className="mt-1 text-xs text-zinc-500">
-        Misma jerarquía que la tienda. Usá +/− para el cambio pendiente por producto; al guardar se
-        confirma en un recuadro y se aplica en la base (no puede quedar stock negativo).
-      </p>
 
       <details
         ref={panelRef}
         open
         onToggle={panelToggle}
-        className="group mt-3 overflow-hidden rounded-lg border border-zinc-800 bg-zinc-950/30 open:shadow-sm"
+        className={`group mt-3 ${storeCatalogFrameSubClass}`}
       >
-        <summary className="catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 rounded-t-lg border-b border-zinc-800 bg-zinc-950/60 px-3 py-2.5 text-sm font-medium text-zinc-200">
+        <summary className="catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 rounded-t-lg border-b border-zinc-700 bg-zinc-950 px-3 py-2.5 text-sm font-medium text-white transition hover:bg-zinc-900">
           <span>
             Inventario{' '}
             {pendingCount > 0 ? (
@@ -268,12 +262,12 @@ export function StockAdjustPanel({
           {chevron()}
         </summary>
         <div className="space-y-3 p-3">
-          <div className="flex flex-wrap items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2 rounded-lg border border-zinc-700 bg-zinc-950 p-2.5">
             <button
               type="button"
               disabled={pendingCount === 0 || busy}
               onClick={() => setConfirmOpen(true)}
-              className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-40"
+              className="rounded-lg border border-yellow-500 bg-[#FFE804] px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-[#FFF44F] hover:border-yellow-400 active:brightness-95 disabled:opacity-40"
             >
               Guardar cambios
             </button>
@@ -281,7 +275,7 @@ export function StockAdjustPanel({
               type="button"
               disabled={pendingCount === 0 || busy}
               onClick={() => setDeltas({})}
-              className="rounded-lg border border-zinc-600 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
+              className="rounded-lg border border-zinc-500 bg-zinc-800 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-700 disabled:opacity-40"
             >
               Descartar
             </button>
@@ -302,7 +296,7 @@ export function StockAdjustPanel({
                     0,
                   )
                   return (
-                    <details key={cat.id} data-stock-branch className={frameCategory}>
+                    <details key={cat.id} data-stock-branch className={storeCatalogFrameCategoryClass}>
                       <summary className={summaryCategory}>
                         <span className="min-w-0 text-left">
                           <span className="text-[10px] font-semibold uppercase tracking-wider text-emerald-300/90">
@@ -325,7 +319,7 @@ export function StockAdjustPanel({
                         {cat.subcategories.map((sub) => {
                           const nSub = countProductsInSub(sub)
                           return (
-                            <details key={sub.id} data-stock-branch className={frameSub}>
+                            <details key={sub.id} data-stock-branch className={storeCatalogFrameSubClass}>
                               <summary className={summarySub}>
                                 <span className="min-w-0 text-left">
                                   <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -364,7 +358,7 @@ export function StockAdjustPanel({
                                     {(sub.subsubcategorias ?? []).map((ss) => {
                                       const nSs = ss.products.length
                                       return (
-                                        <details key={ss.id} data-stock-branch className={frameSubsub}>
+                                        <details key={ss.id} data-stock-branch className={storeCatalogFrameSubsubClass}>
                                           <summary className={summarySubsub}>
                                             <span className="min-w-0 text-left">
                                               <span className="text-[9px] font-semibold uppercase tracking-wide text-emerald-400/85">
@@ -456,7 +450,7 @@ export function StockAdjustPanel({
               <button
                 type="button"
                 disabled={busy}
-                className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white hover:bg-emerald-500 disabled:opacity-50"
+                className="rounded-lg border border-yellow-500 bg-[#FFE804] px-4 py-2 text-sm font-semibold text-white shadow-md hover:bg-[#FFF44F] hover:border-yellow-400 active:brightness-95 disabled:opacity-50"
                 onClick={() => void applySave()}
               >
                 {busy ? 'Guardando…' : 'Sí, guardar'}

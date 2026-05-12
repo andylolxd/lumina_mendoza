@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/browser'
 import { formatMoneyArs } from '@/lib/format'
+import { storeCatalogFrameSubClass } from '@/lib/store-theme'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState, type MutableRefObject } from 'react'
 
@@ -130,6 +131,16 @@ export function StockSalesHistory({
     setTo(s)
   }
 
+  function goToTodaySales() {
+    const day = toInputDate(new Date())
+    setFrom(day)
+    setTo(day)
+    setSearchDay(day)
+  }
+
+  const dayShortcutBtnClass =
+    'rounded-lg border border-zinc-500/60 bg-zinc-500/85 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-400/90'
+
   async function confirmDelete() {
     if (!deleteId) return
     setBusyDelete(true)
@@ -147,15 +158,12 @@ export function StockSalesHistory({
   }
 
   return (
-    <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+    <section className={`${storeCatalogFrameSubClass} p-4`}>
       <h2 className="text-lg font-semibold text-sky-100">Historial de ventas</h2>
-      <p className="mt-1 text-xs text-zinc-500">
-        Ventas en persona por fechas. Al borrar una venta se revierte el stock de sus líneas.
-      </p>
 
       <div className="mt-3 flex flex-wrap items-end gap-3">
         <div>
-          <label htmlFor="hist-from" className="block text-[10px] font-medium uppercase text-zinc-500">
+          <label htmlFor="hist-from" className="block text-[10px] font-medium uppercase text-white">
             Desde
           </label>
           <input
@@ -168,7 +176,7 @@ export function StockSalesHistory({
           />
         </div>
         <div>
-          <label htmlFor="hist-to" className="block text-[10px] font-medium uppercase text-zinc-500">
+          <label htmlFor="hist-to" className="block text-[10px] font-medium uppercase text-white">
             Hasta
           </label>
           <input
@@ -202,11 +210,10 @@ export function StockSalesHistory({
               className="mt-1 rounded border border-zinc-700 bg-zinc-950 px-2 py-1.5 text-sm"
             />
           </div>
-          <button
-            type="button"
-            onClick={applySearchDay}
-            className="rounded-lg border border-zinc-600 px-3 py-2 text-sm text-zinc-200 hover:bg-zinc-800"
-          >
+          <button type="button" onClick={goToTodaySales} className={dayShortcutBtnClass}>
+            Ventas de hoy
+          </button>
+          <button type="button" onClick={applySearchDay} className={dayShortcutBtnClass}>
             Ir a ese día
           </button>
         </div>
@@ -232,7 +239,7 @@ export function StockSalesHistory({
         </summary>
         <div className="max-h-[min(60vh,24rem)] space-y-3 overflow-y-auto p-3">
           {sales.length === 0 && !loading ? (
-            <p className="text-sm text-zinc-500">No hay ventas en el rango elegido.</p>
+            <p className="text-sm text-white">No hay ventas en el rango elegido.</p>
           ) : (
             <ul className="space-y-3">
               {sales.map((sale) => {
@@ -304,8 +311,8 @@ export function StockSalesHistory({
           <div className="w-full max-w-sm rounded-xl border border-zinc-600 bg-zinc-900 p-5 shadow-xl">
             <h3 className="text-lg font-semibold text-rose-100">¿Borrar esta venta?</h3>
             <p className="mt-2 text-sm text-zinc-400">
-              Se eliminará el registro y se <strong className="text-zinc-200">devolverá</strong> el
-              stock de cada producto al inventario.
+              Se eliminará solo el registro de esta venta del historial. El stock del depósito no se
+              modifica.
             </p>
             <div className="mt-4 flex justify-end gap-2">
               <button

@@ -11,9 +11,9 @@ const collapseAllBtnClass =
   'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
 
 const tabBtnBase =
-  'rounded-lg px-3 py-2 text-sm font-medium transition border border-transparent'
-const tabActive = 'border-rose-500/60 bg-rose-950/50 text-rose-100'
-const tabInactive = 'text-zinc-400 hover:bg-zinc-800/80 hover:text-zinc-200'
+  'rounded-lg px-3 py-2 text-sm font-medium shadow-sm transition border'
+const tabActive = 'border-zinc-500 bg-zinc-950 text-zinc-500'
+const tabInactive = 'border-zinc-600 bg-zinc-900/75 text-white hover:border-zinc-500 hover:bg-zinc-800'
 
 type TabId = 'venta' | 'stock' | 'historial' | 'stats'
 
@@ -59,7 +59,7 @@ export function StockPageContent({ categories }: { categories: CategoryRow[] }) 
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-xl font-semibold text-rose-100">Stock</h1>
-          <p className="text-sm text-zinc-500">
+          <p className="text-sm text-white">
             Venta en persona, ajuste de inventario, historial y estadísticas.
           </p>
         </div>
