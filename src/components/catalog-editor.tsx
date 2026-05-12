@@ -4,6 +4,11 @@ import { createClient } from '@/lib/supabase/browser'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { normalizeGallery } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
+import {
+  storeCatalogFrameCategoryClass,
+  storeCatalogFrameSubClass,
+  storeCatalogFrameSubsubClass,
+} from '@/lib/store-theme'
 import type {
   CategoryRow,
   ProductRow,
@@ -64,22 +69,22 @@ function formatSupabaseError(err: { message?: string; code?: string; details?: s
 }
 
 const collapseAllBtnClass =
-  'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
+  'shrink-0 rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50'
 
-/** Mismo borde rojo que el botón «Eliminar» del catálogo. */
+/** Mismo borde rojo que el botón «Eliminar» del catálogo; fondo gris oscuro. */
 const catalogDeleteBtnClass =
-  'rounded-lg border-2 border-red-500/60 bg-transparent px-3 py-1.5 text-xs font-medium text-red-300/95 shadow-sm transition hover:border-red-400 hover:bg-red-950/35 hover:text-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 active:scale-[0.98]'
+  'rounded-lg border-2 border-red-500/60 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-red-200 shadow-sm transition hover:border-red-400 hover:bg-zinc-800 hover:text-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 active:scale-[0.98]'
 
 const catalogDeleteBtnClassCompact =
-  'rounded-lg border-2 border-red-500/60 bg-transparent px-2.5 py-1 text-[11px] font-medium text-red-300/95 shadow-sm transition hover:border-red-400 hover:bg-red-950/35 hover:text-red-200 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 active:scale-[0.98]'
+  'rounded-lg border-2 border-red-500/60 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-red-200 shadow-sm transition hover:border-red-400 hover:bg-zinc-800 hover:text-red-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 active:scale-[0.98]'
 
-/** Mismo borde que eliminar; texto neutro para acción de guardar. */
+/** Mismo borde que eliminar; fondo gris oscuro. */
 const catalogSaveBtnClassCompact =
-  'rounded-lg border-2 border-red-500/60 bg-transparent px-2.5 py-1 text-[11px] font-medium text-zinc-100 shadow-sm transition hover:border-red-400 hover:bg-zinc-800/90 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 active:scale-[0.98]'
+  'rounded-lg border-2 border-red-500/60 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-zinc-100 shadow-sm transition hover:border-red-400 hover:bg-zinc-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 active:scale-[0.98]'
 
 /** Plegado de producto en catálogo: botón rectangular compacto (misma línea que el panel). */
 const catalogProductSummarySquareClass =
-  'catalog-accordion-summary inline-flex h-10 min-w-[5.25rem] max-w-[7.5rem] w-auto shrink-0 cursor-pointer list-none flex-col items-center justify-center gap-0.5 rounded border-2 border-red-500/70 bg-zinc-950/90 px-1.5 py-1 text-center shadow-sm transition hover:border-red-400 hover:bg-zinc-800/95 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/55 active:scale-[0.98] group-open:border-red-400 group-open:bg-zinc-900/95'
+  'catalog-accordion-summary inline-flex h-10 min-w-[5.25rem] max-w-[7.5rem] w-auto shrink-0 cursor-pointer list-none flex-col items-center justify-center gap-0.5 rounded border-2 border-red-500/70 bg-zinc-900 px-1.5 py-1 text-center shadow-sm transition hover:border-red-400 hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/55 active:scale-[0.98] group-open:border-red-400 group-open:bg-zinc-900'
 
 function toggleSectionExpanded(
   setOpen: Dispatch<SetStateAction<boolean>>,
@@ -94,7 +99,7 @@ function toggleSectionExpanded(
 }
 
 const sectionHeaderHitAreaClass =
-  'flex min-w-0 flex-1 cursor-pointer select-none items-start gap-2 rounded-lg border border-transparent px-1 py-1.5 transition hover:border-zinc-600/50 hover:bg-zinc-800/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40'
+  'flex min-w-0 flex-1 cursor-pointer select-none items-start gap-2 rounded-lg border border-transparent px-1 py-1.5 transition hover:border-zinc-600/50 hover:bg-zinc-800/80 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-600/40'
 
 function CollapseChevron({ expanded }: { expanded: boolean }) {
   return (
@@ -231,7 +236,7 @@ function CatalogRubroNameHeader({
             </button>
             <button
               type="button"
-              className="rounded-lg border border-zinc-600 bg-zinc-800/80 px-2.5 py-1 text-[11px] font-medium text-zinc-200 transition hover:bg-zinc-700"
+              className="rounded-lg border border-zinc-600 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-white shadow-sm transition hover:bg-zinc-800"
               disabled={busy}
               onClick={(e) => {
                 e.stopPropagation()
@@ -339,7 +344,7 @@ function CatalogDangerConfirmDialog({
         </h2>
         <div className="mt-2 text-sm leading-relaxed text-zinc-300">{children}</div>
         {summary ? (
-          <div className="mt-4 rounded-xl border border-zinc-700/90 bg-zinc-950/90 px-3 py-2.5 text-xs text-zinc-500">
+          <div className="mt-4 rounded-xl border border-zinc-700/90 bg-zinc-950/90 px-3 py-2.5 text-xs text-white">
             {summary}
           </div>
         ) : null}
@@ -347,7 +352,7 @@ function CatalogDangerConfirmDialog({
           <button
             type="button"
             disabled={busy}
-            className="rounded-lg border border-zinc-600 bg-zinc-800 px-4 py-2 text-sm font-medium text-zinc-200 transition hover:bg-zinc-700 disabled:opacity-50"
+            className="rounded-lg border border-zinc-600 bg-zinc-900 px-4 py-2 text-sm font-medium text-white shadow-sm transition hover:bg-zinc-800 disabled:opacity-50"
             onClick={onCancel}
           >
             Cancelar
@@ -355,7 +360,7 @@ function CatalogDangerConfirmDialog({
           <button
             type="button"
             disabled={busy}
-            className="rounded-lg border-2 border-red-600 bg-red-950/50 px-4 py-2 text-sm font-semibold text-red-100 shadow-md transition hover:border-red-500 hover:bg-red-900/60 disabled:opacity-50"
+            className="rounded-lg border-2 border-red-600 bg-zinc-900 px-4 py-2 text-sm font-semibold text-red-100 shadow-md transition hover:border-red-500 hover:bg-zinc-800 disabled:opacity-50"
             onClick={onConfirm}
           >
             {busy ? 'Eliminando…' : 'Sí, eliminar'}
@@ -933,16 +938,14 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
 
       <div>
         <h1 className="text-xl font-semibold text-rose-100">Catálogo</h1>
-        <p className="text-sm text-zinc-500">
-          Tres niveles fijos: categoría (ej. ANILLOS) → subcategoría con <strong className="text-zinc-400">+ Subcategoría</strong>{' '}
-          (ej. DORADOS) → sub-sub con <strong className="text-zinc-400">+ Sub-sub</strong> dentro de esa sub (ej. 6000). Los
-          rubros se guardan en MAYÚSCULAS. No uses “/” en un solo nombre: son tres pasos distintos.
-        </p>
       </div>
 
-      <form onSubmit={addCategory} className="flex flex-wrap items-end gap-2 rounded-xl border border-zinc-800 p-4">
+      <form
+        onSubmit={addCategory}
+        className={`flex flex-wrap items-end gap-2 p-4 ${storeCatalogFrameSubClass}`}
+      >
         <div>
-          <label htmlFor="catalog-new-category-name" className="text-xs text-zinc-500">
+          <label htmlFor="catalog-new-category-name" className="text-xs text-white">
             Nueva categoría
           </label>
           <input
@@ -957,7 +960,7 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
         </div>
         <button
           type="submit"
-          className="rounded bg-rose-700 px-3 py-2 text-sm font-medium disabled:opacity-50"
+          className="rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50"
           disabled={busy}
         >
           Agregar categoría
@@ -1079,19 +1082,13 @@ function CategorySection({
   }, [expandAllTick])
 
   return (
-    <section
-      className={`rounded-xl border-2 p-4 transition-[border-color,box-shadow] duration-200 ${
-        open
-          ? 'border-rose-400/70 bg-zinc-900/50 shadow-md shadow-rose-950/15 ring-2 ring-rose-400/25'
-          : 'border-zinc-800 bg-zinc-900/40'
-      }`}
-    >
+    <section className={`${storeCatalogFrameCategoryClass} p-4`}>
       <CatalogRubroNameHeader
         busy={busy}
         open={open}
         onToggleOpen={() => toggleSectionExpanded(setOpen, bulkLockRef, onUserExpandedSection)}
         statsWhenCollapsed={
-          <span className="shrink-0 whitespace-nowrap text-[10px] text-zinc-500">
+          <span className="shrink-0 whitespace-nowrap text-[10px] text-white">
             {subs} sub. · {products} prod.
           </span>
         }
@@ -1099,7 +1096,7 @@ function CategorySection({
         onRename={onRenameCategory}
         onRequestDelete={onRequestDeleteCategory}
         toggleSectionKind="categoría"
-        chevronBoxClass="border border-zinc-500/60 bg-zinc-800/80 p-1.5 text-zinc-300"
+        chevronBoxClass="border border-zinc-600 bg-zinc-900 p-1.5 text-white"
         titleClassName="text-lg font-medium tracking-wide text-rose-200"
         containerClassName="mb-3 flex flex-wrap items-center justify-between gap-2"
         deleteAriaLabel="Eliminar categoría"
@@ -1205,19 +1202,13 @@ function SubcategorySection({
   }, [expandAllTick])
 
   return (
-    <div
-      className={`mt-6 rounded-lg border-2 p-3 transition-[border-color,box-shadow] duration-200 ${
-        open
-          ? 'border-rose-400/70 bg-zinc-900/45 shadow-md ring-2 ring-rose-400/25'
-          : 'border-zinc-800/80 bg-zinc-950/20'
-      }`}
-    >
+    <div className={`mt-6 ${storeCatalogFrameSubClass} p-3`}>
       <CatalogRubroNameHeader
         busy={busy}
         open={open}
         onToggleOpen={() => toggleSectionExpanded(setOpen, bulkLockRef, onUserExpandedSection)}
         statsWhenCollapsed={
-          <span className="shrink-0 whitespace-nowrap text-[10px] text-zinc-500">
+          <span className="shrink-0 whitespace-nowrap text-[10px] text-white">
             {nProducts} prod. · {nSubsubs} sub-sub
           </span>
         }
@@ -1225,8 +1216,8 @@ function SubcategorySection({
         onRename={(n) => renameSubcategory(node.id, n)}
         onRequestDelete={onRequestDeleteSubcategory}
         toggleSectionKind="subcategoría"
-        chevronBoxClass="border border-zinc-600/70 bg-zinc-900/90 p-1.5 text-zinc-400"
-        titleClassName="text-base font-medium tracking-wide text-zinc-200"
+        chevronBoxClass="border border-zinc-500 bg-zinc-900 p-1.5 text-white"
+        titleClassName="text-base font-medium tracking-wide text-white"
         deleteAriaLabel="Eliminar subcategoría"
       />
 
@@ -1240,7 +1231,7 @@ function SubcategorySection({
             onAdd={onAddSubsub}
           />
 
-          <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+          <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-white">
             Productos en esta subcategoría
           </p>
           <ProductAddForm disabled={busy} onAdd={(f) => onAddProduct(null, f)} />
@@ -1333,19 +1324,13 @@ function SubsubSection({
   }, [expandAllTick])
 
   return (
-    <div
-      className={`mt-5 ml-2 rounded-lg border-2 p-2 pl-3 transition-[border-color,box-shadow] duration-200 sm:ml-3 sm:pl-4 ${
-        open
-          ? 'border-rose-400/70 bg-rose-950/15 shadow-sm ring-2 ring-rose-400/25'
-          : 'border-zinc-800/70 bg-zinc-950/10'
-      }`}
-    >
+    <div className={`mt-5 ml-2 p-2 pl-3 sm:ml-3 sm:pl-4 ${storeCatalogFrameSubsubClass}`}>
       <CatalogRubroNameHeader
         busy={busy}
         open={open}
         onToggleOpen={() => toggleSectionExpanded(setOpen, bulkLockRef, onUserExpandedSection)}
         statsWhenCollapsed={
-          <span className="shrink-0 whitespace-nowrap text-[10px] text-zinc-500">{nProducts} prod.</span>
+          <span className="shrink-0 whitespace-nowrap text-[10px] text-white">{nProducts} prod.</span>
         }
         name={node.name}
         onRename={(n) => renameSubsubcategoria(node.id, n)}
@@ -1358,9 +1343,9 @@ function SubsubSection({
         }
         deleteCompact
         toggleSectionKind="sub-subcategoría"
-        chevronBoxClass="border border-rose-900/50 bg-rose-950/40 p-1.5 text-rose-300/90"
+        chevronBoxClass="border border-zinc-600 bg-zinc-900 p-1.5 text-white"
         titleClassName="text-sm font-medium tracking-wide text-rose-200/90"
-        titleSuffix={<span className="shrink-0 text-[10px] font-normal text-zinc-500">(sub-sub)</span>}
+        titleSuffix={<span className="shrink-0 text-[10px] font-normal text-white">(sub-sub)</span>}
         deleteAriaLabel="Eliminar sub-subcategoría"
       />
       {open ? (
@@ -1645,7 +1630,7 @@ function ProductCatalogRow({
                 placeholder="Descripción"
               />
               <div className="flex flex-wrap gap-2">
-                <label className="text-xs text-zinc-500">
+                <label className="text-xs text-white">
                   Precio
                   <input
                     ref={priceRef}
@@ -1656,7 +1641,7 @@ function ProductCatalogRow({
                   />
                 </label>
                 {!hasVariants ? (
-                  <label className="text-xs text-zinc-500">
+                  <label className="text-xs text-white">
                     Stock
                     <input
                       type="number"
@@ -1687,10 +1672,10 @@ function ProductCatalogRow({
                 </button>
               </div>
               <div className="rounded border border-zinc-800/80 bg-zinc-950/30 p-2">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">Talles (anillos, etc.)</p>
+                <p className="text-[10px] font-medium uppercase tracking-wide text-white">Talles (anillos, etc.)</p>
                 <table className="mt-1 w-full max-w-md text-left text-[11px] text-zinc-300">
                   <thead>
-                    <tr className="text-[10px] uppercase text-zinc-500">
+                    <tr className="text-[10px] uppercase text-white">
                       <th className="pb-0.5 font-medium">Talle</th>
                       <th className="pb-0.5 font-medium">Stock</th>
                       <th className="pb-0.5 font-medium">Estado</th>
@@ -1727,10 +1712,10 @@ function ProductCatalogRow({
                             type="button"
                             className={
                               v.stock_quantity < 1
-                                ? 'rounded border border-red-900/60 bg-red-950/40 px-1.5 py-0.5 text-[10px] text-red-200 opacity-60'
+                                ? 'rounded border border-zinc-600 bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-400 opacity-60'
                                 : v.active
-                                  ? 'rounded border border-emerald-900/50 bg-emerald-950/30 px-1.5 py-0.5 text-[10px] text-emerald-200 hover:bg-emerald-950/50'
-                                  : 'rounded border border-red-900/60 bg-red-950/40 px-1.5 py-0.5 text-[10px] text-red-200 hover:bg-red-950/70'
+                                  ? 'rounded border border-zinc-600 bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-100 hover:bg-zinc-800'
+                                  : 'rounded border border-zinc-600 bg-zinc-900 px-1.5 py-0.5 text-[10px] text-zinc-300 hover:bg-zinc-800'
                             }
                             disabled={busy || v.stock_quantity < 1}
                             onClick={() => updateDraftVariant(v.id, { active: !v.active })}
@@ -1750,7 +1735,7 @@ function ProductCatalogRow({
                   </tbody>
                 </table>
                 <div className="mt-2 flex flex-wrap items-end gap-2 border-t border-zinc-800/60 pt-2">
-                  <label className="text-[10px] text-zinc-500">
+                  <label className="text-[10px] text-white">
                     Nuevo talle
                     <input
                       value={newTalle}
@@ -1760,7 +1745,7 @@ function ProductCatalogRow({
                       disabled={busy}
                     />
                   </label>
-                  <label className="text-[10px] text-zinc-500">
+                  <label className="text-[10px] text-white">
                     Stock
                     <input
                       type="number"
@@ -1782,7 +1767,7 @@ function ProductCatalogRow({
                 </div>
               </div>
               <div className="space-y-2">
-                <p className="text-[10px] font-medium uppercase tracking-wide text-zinc-500">
+                <p className="text-[10px] font-medium uppercase tracking-wide text-white">
                   Fotos · principal primero en la tienda (se aplican al pulsar Guardar)
                 </p>
                 <div className="flex flex-wrap items-center gap-2">
@@ -1799,7 +1784,7 @@ function ProductCatalogRow({
                   />
                   <label
                     htmlFor={`product-image-${p.id}`}
-                    className="inline-flex cursor-pointer select-none items-center gap-1.5 rounded-lg border border-rose-700/45 bg-gradient-to-b from-rose-900/55 to-zinc-950/90 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-rose-100/95 shadow-sm shadow-black/30 ring-1 ring-inset ring-white/5 transition hover:border-rose-500/55 hover:from-rose-800/65 hover:to-zinc-900 hover:text-white active:scale-[0.98]"
+                    className="inline-flex cursor-pointer select-none items-center gap-1.5 rounded-lg border border-zinc-600 bg-zinc-900 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-wide text-white shadow-sm transition hover:border-zinc-500 hover:bg-zinc-800 active:scale-[0.98]"
                   >
                     <svg
                       xmlns="http://www.w3.org/2000/svg"
@@ -1825,14 +1810,14 @@ function ProductCatalogRow({
                   />
                   <label
                     htmlFor={`product-gallery-${p.id}`}
-                    className="inline-flex cursor-pointer select-none items-center gap-1 rounded-lg border border-zinc-600 bg-zinc-800/90 px-2.5 py-1 text-[10px] font-medium text-zinc-200 transition hover:border-zinc-500 hover:bg-zinc-700"
+                    className="inline-flex cursor-pointer select-none items-center gap-1 rounded-lg border border-zinc-500 bg-zinc-900 px-2.5 py-1 text-[10px] font-medium text-white transition hover:border-zinc-400 hover:bg-zinc-800"
                   >
                     + Otra foto
                   </label>
                 </div>
                 <div className="flex flex-wrap items-end gap-2">
                   <div className="relative inline-block">
-                    <span className="absolute -bottom-0.5 left-0.5 rounded bg-rose-900/90 px-1 text-[8px] font-semibold text-rose-100">
+                    <span className="absolute -bottom-0.5 left-0.5 rounded bg-zinc-800 px-1 text-[8px] font-semibold text-zinc-100">
                       Principal
                     </span>
                     {mainThumbSrc ? (
@@ -1848,7 +1833,7 @@ function ProductCatalogRow({
                     <div key={pg.url} className="relative inline-block">
                       <button
                         type="button"
-                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-amber-700/80 bg-amber-950/90 text-[10px] leading-none text-amber-100 shadow hover:bg-amber-900"
+                        className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-600 bg-zinc-900 text-[10px] leading-none text-white shadow hover:bg-zinc-800"
                         aria-label="Descartar foto nueva"
                         onClick={() => removePendingGalleryAt(i)}
                       >
@@ -1865,7 +1850,7 @@ function ProductCatalogRow({
                       <div key={path} className="relative inline-block">
                         <button
                           type="button"
-                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-600 bg-zinc-900 text-[10px] leading-none text-zinc-300 shadow hover:bg-red-950/80 hover:text-red-100"
+                          className="absolute -right-1 -top-1 flex h-5 w-5 items-center justify-center rounded-full border border-zinc-600 bg-zinc-900 text-[10px] leading-none text-white shadow hover:bg-zinc-800 hover:text-white"
                           aria-label="Quitar foto de galería (al guardar)"
                           onClick={() => removeLocalGalleryPath(path)}
                         >
@@ -1983,7 +1968,7 @@ function SubcategoryForm({
       }}
     >
       {hint ? (
-        <label htmlFor={inputId} className="w-full cursor-pointer text-[10px] text-zinc-500">
+        <label htmlFor={inputId} className="w-full cursor-pointer text-[10px] text-white">
           {hint}
         </label>
       ) : (
@@ -2003,7 +1988,7 @@ function SubcategoryForm({
       <button
         type="submit"
         disabled={disabled}
-        className="rounded bg-zinc-700 px-2 py-1 text-sm hover:bg-zinc-600 disabled:opacity-50"
+        className="rounded-lg border border-zinc-600 bg-zinc-900 px-2 py-1 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50"
       >
         {buttonLabel ?? '+ Subcategoría'}
       </button>
@@ -2098,7 +2083,7 @@ function ProductAddForm({
       <button
         type="submit"
         disabled={disabled}
-        className="rounded bg-green-800 px-2 py-1 text-sm hover:bg-green-700 disabled:opacity-50"
+        className="rounded-lg border border-zinc-600 bg-zinc-900 px-2 py-1 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50"
       >
         + Producto
       </button>

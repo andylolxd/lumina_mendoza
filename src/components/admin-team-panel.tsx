@@ -9,6 +9,7 @@ import {
   setAdminPasswordAction,
 } from '@/app/admin/(dash)/equipo/actions'
 import { createClient } from '@/lib/supabase/browser'
+import { storeCatalogFrameSubClass } from '@/lib/store-theme'
 import { useRouter } from 'next/navigation'
 import { useActionState, useEffect } from 'react'
 
@@ -51,7 +52,7 @@ export function AdminTeamPanel({
 
   return (
     <div className="space-y-10">
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Administradores actuales</h2>
         <p className="mt-1 text-xs text-zinc-500">
           El login usa el mismo email en Authentication y en esta tabla. Sin @, el usuario es{' '}
@@ -70,7 +71,7 @@ export function AdminTeamPanel({
         </ul>
       </section>
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Nuevo administrador</h2>
         <p className="mt-1 text-xs text-zinc-500">
           Crea el usuario en Supabase Auth y lo agrega a admin_users (contraseña inicial).
@@ -102,7 +103,7 @@ export function AdminTeamPanel({
         </form>
       </section>
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Vincular usuario existente</h2>
         <p className="mt-1 text-xs text-zinc-500">
           Si ya creaste el usuario en Authentication (Dashboard) y solo falta permitirle el panel.
@@ -126,7 +127,7 @@ export function AdminTeamPanel({
         </form>
       </section>
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Cambiar contraseña</h2>
         <form action={pwdAction} className="mt-3 space-y-2">
           <select
@@ -164,7 +165,7 @@ export function AdminTeamPanel({
         </form>
       </section>
 
-      <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
+      <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Cambiar usuario de ingreso</h2>
         <p className="mt-1 text-xs text-zinc-500">
           Actualiza el email en Auth y en admin_users. Si cambiás el tuyo, al guardar se cierra la sesión y
@@ -194,7 +195,7 @@ export function AdminTeamPanel({
         </form>
       </section>
 
-      <section className="rounded-xl border border-red-950/60 bg-red-950/20 p-4">
+      <section className="overflow-hidden rounded-xl border-2 border-red-600/55 bg-red-950/25 p-4 shadow-md ring-2 ring-red-400/20">
         <h2 className="text-sm font-semibold text-red-300">Quitar administrador</h2>
         <p className="mt-1 text-xs text-zinc-500">
           Quita la fila en admin_users y borra el usuario de Authentication. No se puede si es el único.
