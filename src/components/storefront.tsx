@@ -69,7 +69,7 @@ const storeCatalogSummarySubsubClass =
 /** Contador de productos activos a la derecha (misma idea en categoría, subcategoría y sub-sub). */
 const storeAccordionCountBadgeBase =
   'inline-flex min-h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums leading-none'
-const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border-amber-600/50 bg-black/55 text-amber-50 shadow-md shadow-black/30 backdrop-blur-[2px]`
+const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border border-white/40 bg-zinc-200/18 text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.55),inset_0_-1px_0_rgba(0,0,0,0.06),0_2px_10px_rgba(0,0,0,0.22)] backdrop-blur-md [text-shadow:0_1px_2px_rgba(0,0,0,0.55)]`
 const storeAccordionCountSub = `${storeAccordionCountBadgeBase} border-zinc-500/75 bg-zinc-950/85 text-zinc-100 shadow-sm shadow-black/15`
 const storeAccordionCountSubsub = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-black/35 text-rose-50 shadow-sm shadow-rose-950/20`
 
@@ -338,7 +338,7 @@ function CategoryStoreDetails({
           <img
             src={heroUrl}
             alt=""
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover brightness-[1.07] contrast-[1.02]"
           />
         ) : (
           <div
@@ -347,11 +347,11 @@ function CategoryStoreDetails({
           />
         )}
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/88 via-black/50 to-black/15 sm:via-black/38 sm:to-transparent"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-zinc-950/78 via-zinc-950/38 to-transparent sm:via-zinc-950/28"
           aria-hidden
         />
         <div
-          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20"
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/38 via-transparent to-zinc-950/25"
           aria-hidden
         />
         <span className="relative z-20 min-w-0 flex-1 px-4 py-4 text-left sm:px-5 sm:py-5">
