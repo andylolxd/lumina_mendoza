@@ -10,6 +10,10 @@ export type SharedCartItem = {
   /** Si el ítem es una variante (talle de anillo, etc.). */
   variant_id?: string | null
   variant_label?: string | null
+  /** Categoría de tienda (primer nivel): para agrupar el detalle en WhatsApp. */
+  category_id?: string | null
+  category_name?: string | null
+  category_sort_order?: number | null
 }
 
 export async function POST(req: Request) {

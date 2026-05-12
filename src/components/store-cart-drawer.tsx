@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useCart, type CartLine } from '@/context/cart-context'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { appBaseUrl, getPublicUrlFromPath } from '@/lib/publicUrl'
+import { formatSharedCartWhatsAppDetail } from '@/lib/whatsapp-cart-detail'
 import type { SharedCartItem } from '@/app/api/carts/route'
 
 type StoreCartDrawerProps = {
@@ -52,6 +53,9 @@ export function StoreCartDrawer({ open, onClose, title = 'Tu carrito' }: StoreCa
         name: l.name,
         unit_price: l.unitPrice,
         quantity: l.quantity,
+        category_id: l.categoryId,
+        category_name: l.categoryName,
+        category_sort_order: l.categorySortOrder,
         ...(l.variantId
           ? { variant_id: l.variantId, variant_label: l.variantLabel ?? undefined }
           : {}),
@@ -66,12 +70,7 @@ export function StoreCartDrawer({ open, onClose, title = 'Tu carrito' }: StoreCa
 
       const base = appBaseUrl()
       const cartUrl = `${base}/c/${js.id}`
-      const detail = lines
-        .map((l) => {
-          const t = l.unitPrice * l.quantity
-          return `• ${l.name} x${l.quantity} — ${formatMoneyArs(t)} (${formatMoneyArs(l.unitPrice)} c/u)`
-        })
-        .join('\n')
+      const detail = formatSharedCartWhatsAppDetail(items)
       const msg = [
         '¡Hola! Quiero comprar en *Lumina Mendoza*:',
         '',

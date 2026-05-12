@@ -2,6 +2,7 @@
 
 import type { SharedCartItem } from '@/app/api/carts/route'
 import { formatMoneyArs } from '@/lib/format'
+import { formatSharedCartWhatsAppDetail } from '@/lib/whatsapp-cart-detail'
 import { appBaseUrl } from '@/lib/publicUrl'
 import { combineWhatsAppParts, splitStoredWhatsApp } from '@/lib/whatsapp-cart-parts'
 import { useEffect, useMemo, useState } from 'react'
@@ -36,12 +37,7 @@ export function SharedCartAcceptedClientNotify({
   function buildAcceptedMessage(): string {
     const base = appBaseUrl().replace(/\/$/, '')
     const link = `${base}/c/${cartId}`
-    const detail = items
-      .map((l) => {
-        const t = l.unit_price * l.quantity
-        return `• ${l.name} ×${l.quantity} — ${formatMoneyArs(t)} (${formatMoneyArs(l.unit_price)} c/u)`
-      })
-      .join('\n')
+    const detail = formatSharedCartWhatsAppDetail(items)
     return [
       '¡Hola! *Lumina Mendoza* te confirma que *aceptamos tu pedido* y ya está registrado.',
       '',

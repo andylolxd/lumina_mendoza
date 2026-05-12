@@ -2,6 +2,7 @@
 
 import type { SharedCartItem } from '@/app/api/carts/route'
 import { formatMoneyArs } from '@/lib/format'
+import { formatSharedCartWhatsAppDetail } from '@/lib/whatsapp-cart-detail'
 import { appBaseUrl, getPublicUrlFromPath } from '@/lib/publicUrl'
 import { ProductImageLightbox, type ProductLightboxPayload } from '@/components/product-image-lightbox'
 import { combineWhatsAppParts, splitStoredWhatsApp } from '@/lib/whatsapp-cart-parts'
@@ -186,12 +187,7 @@ export function SharedCartView({
   function buildClientMessage(): string {
     const base = appBaseUrl().replace(/\/$/, '')
     const link = `${base}/c/${cartId}`
-    const detail = items
-      .map((l) => {
-        const t = l.unit_price * l.quantity
-        return `• ${l.name} ×${l.quantity} — ${formatMoneyArs(t)} (${formatMoneyArs(l.unit_price)} c/u)`
-      })
-      .join('\n')
+    const detail = formatSharedCartWhatsAppDetail(items)
     return [
       '¡Hola! Te pasamos el detalle del pedido (*Lumina Mendoza*):',
       '',

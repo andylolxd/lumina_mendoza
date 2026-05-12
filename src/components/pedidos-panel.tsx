@@ -231,7 +231,36 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                     className="flex flex-col gap-0 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4"
                   >
                     <div className="min-w-0 flex-1 space-y-1 pb-3 sm:pb-0">
-                      <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-start sm:justify-between sm:gap-x-3">
+                      {row.admin_note ? (
+                        <div className="flex w-full min-w-0 items-start justify-between gap-2">
+                          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
+                            <span
+                              className={`${pedidoStatusBadgeFrame} ${statusClass(row.status)}`}
+                            >
+                              {statusLabel(row.status)}
+                            </span>
+                            <span className="min-w-0 text-xs text-zinc-500 sm:tabular-nums">
+                              {new Date(row.created_at).toLocaleString('es-AR', {
+                                dateStyle: 'short',
+                                timeStyle: 'short',
+                              })}
+                            </span>
+                          </div>
+                          <div className="flex min-w-0 max-w-[11rem] shrink-0 flex-col gap-1 sm:max-w-[20rem]">
+                            <span
+                              className={`w-fit ${pedidoStatusBadgeFrame} ${statusClass('pending')}`}
+                            >
+                              Nota
+                            </span>
+                            <p
+                              className="line-clamp-2 w-full break-words text-left text-xs leading-snug text-zinc-300"
+                              title={row.admin_note}
+                            >
+                              {row.admin_note}
+                            </p>
+                          </div>
+                        </div>
+                      ) : (
                         <div className="flex min-w-0 flex-wrap items-center gap-2">
                           <span
                             className={`${pedidoStatusBadgeFrame} ${statusClass(row.status)}`}
@@ -245,22 +274,7 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                             })}
                           </span>
                         </div>
-                        {row.admin_note ? (
-                          <div className="flex min-w-0 w-full flex-col gap-1 sm:ml-auto sm:w-auto sm:max-w-[min(100%,20rem)]">
-                            <span
-                              className={`w-fit ${pedidoStatusBadgeFrame} ${statusClass('pending')}`}
-                            >
-                              Nota
-                            </span>
-                            <p
-                              className="line-clamp-2 w-full break-words text-left text-xs leading-snug text-zinc-300"
-                              title={row.admin_note}
-                            >
-                              {row.admin_note}
-                            </p>
-                          </div>
-                        ) : null}
-                      </div>
+                      )}
                       <p className="text-sm text-zinc-300">
                         {row.lineCount} ítem{row.lineCount === 1 ? '' : 's'} · Total{' '}
                         <span className="font-semibold text-rose-200">{formatMoneyArs(row.total)}</span>
