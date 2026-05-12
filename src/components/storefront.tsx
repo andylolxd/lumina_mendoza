@@ -6,11 +6,19 @@ import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'rea
 import { useCart } from '@/context/cart-context'
 import { StoreSessionLogoutButton } from '@/components/store-session-logout-button'
 import { StoreCartDrawer } from '@/components/store-cart-drawer'
+import { StoreFooter } from '@/components/store-footer'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { ProductImageLightbox, type ProductLightboxPayload } from '@/components/product-image-lightbox'
 import { collectProductImagePaths } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
 import { headerNavPillMuted, headerNavPillRose } from '@/lib/store-header-nav'
+import {
+  STORE_HEADER_BG_SRC,
+  storeCatalogFrameCategoryClass,
+  storeCatalogFrameSubClass,
+  storeCatalogFrameSubsubClass,
+  storeInfiniteBgLayerStyle,
+} from '@/lib/store-theme'
 import type { CategoryRow, ProductRow, ProductVariantRow, SubcategoryRow, SubsubcategoriaRow } from '@/types/catalog'
 
 const storeTitleFont = Playfair_Display({
@@ -53,19 +61,6 @@ function storeVariantDataKey(variants: ProductVariantRow[] | null | undefined) {
 const collapseAllBtnClass =
   'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
 
-const STORE_INFINITE_BG_SRC = '/images/store-infinite-bg.png'
-const STORE_HEADER_BG_SRC = '/images/store-header-bg.png'
-
-/** Acordeón tienda — categoría: marco siempre con el mismo borde/anillo que al expandir. */
-const storeCatalogFrameCategoryClass =
-  'group scroll-mt-24 overflow-hidden rounded-3xl border-2 border-rose-400/70 bg-zinc-900/45 shadow-md shadow-black/35 ring-2 ring-rose-400/25 transition-[border-color,box-shadow,ring-width,ring-color] duration-200'
-
-const storeCatalogFrameSubClass =
-  'group overflow-hidden rounded-xl border-2 border-rose-400/70 bg-zinc-900/45 shadow-md shadow-black/25 ring-2 ring-rose-400/25 transition-[border-color,box-shadow,ring-width,ring-color] duration-200'
-
-const storeCatalogFrameSubsubClass =
-  'group overflow-hidden rounded-lg border-2 border-rose-400/70 bg-rose-950/15 shadow-sm shadow-black/25 ring-2 ring-rose-400/25 transition-[border-color,box-shadow,ring-width,ring-color] duration-200 sm:ml-1'
-
 /** Summary categoría: hero visual (lógica `<details>` intacta). Subcategorías siguen usando sus clases propias. */
 const storeCatalogSummaryCategoryClass =
   'catalog-accordion-summary relative flex min-h-[140px] w-full cursor-pointer list-none items-center justify-between gap-3 overflow-hidden rounded-t-3xl border-0 transition-[filter] duration-200 hover:brightness-[1.03] active:brightness-[0.98] group-open:rounded-b-none sm:min-h-[160px]'
@@ -94,25 +89,6 @@ function useDetailsBulkRefs(collapseTick: number, expandTick: number) {
     if (ref.current) ref.current.open = true
   }, [expandTick])
   return ref
-}
-
-/** Diamante lineal junto al título (tono oro rosa, alineado con las tarjetas de categoría). */
-function StoreHeaderDiamond({ className }: { className?: string }) {
-  return (
-    <svg
-      className={`shrink-0 text-[#e8b4a0] ${className ?? ''}`}
-      viewBox="0 0 20 20"
-      fill="none"
-      aria-hidden
-    >
-      <path
-        d="M10 3.2L16.2 9.9 10 16.7 3.8 9.9 10 3.2z"
-        stroke="currentColor"
-        strokeWidth="1.15"
-        strokeLinejoin="round"
-      />
-    </svg>
-  )
 }
 
 export function Storefront({
@@ -182,12 +158,11 @@ export function Storefront({
         />
         <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <div className="min-w-0">
-            <div className={`flex flex-wrap items-baseline gap-x-2 ${storeTitleFont.className}`}>
-              <h1 className="m-0 bg-[linear-gradient(118deg,#fff5f0_0%,#f0d4cc_22%,#d4a088_52%,#c08081_78%,#a86f6f_100%)] bg-clip-text text-[1.35rem] font-semibold leading-tight tracking-[0.03em] text-transparent sm:text-[1.65rem]">
-                Lumina Mendoza
-              </h1>
-              <StoreHeaderDiamond className="relative top-px h-[0.95rem] w-[0.95rem] sm:h-[1.05rem] sm:w-[1.05rem]" />
-            </div>
+            <h1
+              className={`m-0 bg-[linear-gradient(118deg,#fff5f0_0%,#f0d4cc_22%,#d4a088_52%,#c08081_78%,#a86f6f_100%)] bg-clip-text text-[1.35rem] font-semibold leading-tight tracking-[0.03em] text-transparent sm:text-[1.65rem] ${storeTitleFont.className}`}
+            >
+              Lumina Mendoza
+            </h1>
             <p className="mt-1 font-sans text-[0.6875rem] font-medium leading-snug tracking-wide text-amber-200/88 sm:text-[0.8125rem]">
               Catálogo y pedidos por WhatsApp
             </p>
@@ -233,13 +208,7 @@ export function Storefront({
       <div className="relative w-full">
         <div
           className="pointer-events-none absolute inset-0 z-0"
-          style={{
-            backgroundImage: `url(${STORE_INFINITE_BG_SRC})`,
-            backgroundRepeat: 'repeat',
-            backgroundPosition: 'center top',
-            backgroundSize: 'min(320px, 38vw) auto',
-            imageRendering: 'pixelated',
-          }}
+          style={storeInfiniteBgLayerStyle}
           aria-hidden
         />
         <main className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-3 sm:pt-4">
@@ -278,6 +247,7 @@ export function Storefront({
             )}
           </div>
         </main>
+        <StoreFooter />
       </div>
 
       <StoreCartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />

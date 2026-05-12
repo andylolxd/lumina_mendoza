@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { useCart, type CartLine } from '@/context/cart-context'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { appBaseUrl, getPublicUrlFromPath } from '@/lib/publicUrl'
+import { buildStoreWhatsAppUrl } from '@/lib/store-public-links'
 import { formatWhatsAppDetailFromStoreLines } from '@/lib/whatsapp-cart-detail'
 import type { SharedCartItem } from '@/app/api/carts/route'
 
@@ -83,9 +84,10 @@ export function StoreCartDrawer({ open, onClose, title = 'Tu carrito' }: StoreCa
         '_El stock del depósito lo confirma el local al aceptar el pedido._',
       ].join('\n')
 
-      const phone = process.env.NEXT_PUBLIC_WHATSAPP_E164 ?? ''
-      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-      window.open(url, '_blank', 'noopener,noreferrer')
+      const url = buildStoreWhatsAppUrl(msg)
+      clear()
+      onClose()
+      window.location.assign(url)
     } catch (e) {
       console.error(e)
       alert('No se pudo preparar WhatsApp. Revisá la configuración del sitio.')
