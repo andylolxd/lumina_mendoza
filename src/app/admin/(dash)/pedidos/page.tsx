@@ -58,18 +58,7 @@ export default async function PedidosPage() {
   return (
     <div>
       <h1 className="text-xl font-semibold text-rose-100">Pedidos</h1>
-      <p className="mt-2 max-w-2xl text-sm text-zinc-400">
-        Los clientes envían el carrito por WhatsApp con un enlace. El stock del depósito{' '}
-        <strong className="text-zinc-200">solo se descuenta</strong> cuando tocás «Aceptar venta» (desde acá o desde
-        la página del carrito logueada como admin). Una <strong className="text-zinc-300">nota interna</strong> para el
-        equipo (envío, recordatorios) la cargás desde «Ver carrito / link cliente» con el pedido pendiente.
-      </p>
-      <p className="mt-2 max-w-2xl text-sm text-zinc-500">
-        En la pestaña <strong className="text-zinc-400">Historial</strong> podés{' '}
-        <strong className="text-zinc-400">eliminar</strong> pedidos aceptados o rechazados para limpiar la lista: el
-        enlace del carrito deja de funcionar y no se revierte el stock ya descontado.
-      </p>
-      <div className="mt-8">
+      <div className="mt-6">
         <PedidosPanel initialRows={rows} />
       </div>
     </div>

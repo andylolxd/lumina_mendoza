@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { formatMoneyArs } from '@/lib/format'
 import { appBaseUrl } from '@/lib/publicUrl'
+import { storeCatalogFrameSubClass } from '@/lib/store-theme'
 
 export type PedidoListRow = {
   id: string
@@ -236,26 +237,26 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
         <p className="text-sm text-zinc-500">Todavía no hay pedidos por carrito compartido.</p>
       ) : (
         <>
-          <div className="mb-4 flex gap-1 border-b border-zinc-800">
+          <div className="mb-4 flex flex-wrap gap-2">
             <button
               type="button"
               onClick={() => setTab('pendientes')}
-              className={
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold text-white transition ${
                 tab === 'pendientes'
-                  ? '-mb-px border-b-2 border-rose-500 px-3 py-2 text-sm font-semibold text-rose-100'
-                  : 'border-b-2 border-transparent px-3 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-300'
-              }
+                  ? 'border-zinc-500/55 bg-zinc-950/88 shadow-sm ring-1 ring-white/10'
+                  : 'border-zinc-700/50 bg-zinc-950/38 hover:bg-zinc-950/48'
+              }`}
             >
               Pedidos ({pendientes.length})
             </button>
             <button
               type="button"
               onClick={() => setTab('historial')}
-              className={
+              className={`rounded-lg border px-3 py-2 text-sm font-semibold text-white transition ${
                 tab === 'historial'
-                  ? '-mb-px border-b-2 border-rose-500 px-3 py-2 text-sm font-semibold text-rose-100'
-                  : 'border-b-2 border-transparent px-3 py-2 text-sm font-medium text-zinc-500 hover:text-zinc-300'
-              }
+                  ? 'border-zinc-500/55 bg-zinc-950/88 shadow-sm ring-1 ring-white/10'
+                  : 'border-zinc-700/50 bg-zinc-950/38 hover:bg-zinc-950/48'
+              }`}
             >
               Historial ({historial.length})
             </button>
@@ -275,10 +276,18 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                 const showActions = tab === 'pendientes' && row.status === 'pending'
                 const showHistorialDelete =
                   tab === 'historial' && (row.status === 'accepted' || row.status === 'rejected')
+                const dateTimeRowClass =
+                  tab === 'pendientes'
+                    ? 'text-xs text-white tabular-nums'
+                    : 'text-xs text-zinc-500 sm:tabular-nums'
+                const cartLinkClass =
+                  tab === 'pendientes'
+                    ? 'inline-block text-sm font-medium text-amber-400 underline decoration-amber-500/55 underline-offset-2 hover:text-amber-300'
+                    : 'inline-block text-sm text-rose-400 underline decoration-rose-400/50 underline-offset-2 hover:text-rose-300'
                 return (
                   <li
                     key={row.id}
-                    className="flex flex-col gap-0 rounded-xl border border-zinc-800 bg-zinc-900/40 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4"
+                    className={`flex flex-col gap-0 p-4 sm:flex-row sm:items-stretch sm:justify-between sm:gap-4 ${storeCatalogFrameSubClass}`}
                   >
                     <div className="min-w-0 flex-1 space-y-1 pb-3 sm:pb-0">
                       {row.admin_note ? (
@@ -289,7 +298,7 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                             >
                               {statusLabel(row.status)}
                             </span>
-                            <span className="min-w-0 text-xs text-zinc-500 sm:tabular-nums">
+                            <span className={`min-w-0 ${dateTimeRowClass}`}>
                               {new Date(row.created_at).toLocaleString('es-AR', {
                                 dateStyle: 'short',
                                 timeStyle: 'short',
@@ -317,7 +326,7 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                           >
                             {statusLabel(row.status)}
                           </span>
-                          <span className="text-xs text-zinc-500">
+                          <span className={dateTimeRowClass}>
                             {new Date(row.created_at).toLocaleString('es-AR', {
                               dateStyle: 'short',
                               timeStyle: 'short',
@@ -348,10 +357,7 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                         <p className="text-xs text-zinc-500">Cerrado sin venta (rechazado).</p>
                       ) : null}
                       <p className="pt-1">
-                        <Link
-                          href={cartUrl}
-                          className="inline-block text-sm text-rose-400 underline decoration-rose-400/50 underline-offset-2 hover:text-rose-300"
-                        >
+                        <Link href={cartUrl} className={cartLinkClass}>
                           Ver carrito / link cliente
                         </Link>
                       </p>
