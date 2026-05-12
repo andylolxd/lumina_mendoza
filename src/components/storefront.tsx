@@ -46,9 +46,9 @@ function storeVariantDataKey(variants: ProductVariantRow[] | null | undefined) {
 const collapseAllBtnClass =
   'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
 
-/** Acordeón tienda: misma lógica de borde/anillo que el catálogo admin (rosa al abrir). */
+/** Acordeón tienda — categoría: marco tipo “tarjeta” (hero + subramas sin cambios). Abierto: mismo borde/anillo que subcategoría. */
 const storeCatalogFrameCategoryClass =
-  'group scroll-mt-24 overflow-hidden rounded-2xl border-2 border-zinc-800 bg-zinc-900/40 shadow-md shadow-black/25 ring-1 ring-zinc-800/35 transition-[border-color,box-shadow,ring-width,ring-color] duration-200 open:border-rose-400/70 open:bg-zinc-900/50 open:shadow-md open:shadow-rose-950/15 open:ring-2 open:ring-rose-400/25'
+  'group scroll-mt-24 overflow-hidden rounded-3xl border-2 border-amber-900/30 bg-zinc-950 shadow-lg shadow-black/35 ring-1 ring-amber-900/20 transition-[border-color,box-shadow,ring-width,ring-color] duration-200 open:border-rose-400/70 open:bg-zinc-900/45 open:shadow-md open:ring-2 open:ring-rose-400/25'
 
 const storeCatalogFrameSubClass =
   'group overflow-hidden rounded-xl border-2 border-zinc-800/80 bg-zinc-950/20 shadow-md shadow-black/25 ring-1 ring-zinc-800/30 transition-[border-color,box-shadow,ring-width,ring-color] duration-200 open:border-rose-400/70 open:bg-zinc-900/45 open:shadow-md open:ring-2 open:ring-rose-400/25'
@@ -56,8 +56,9 @@ const storeCatalogFrameSubClass =
 const storeCatalogFrameSubsubClass =
   'group overflow-hidden rounded-lg border-2 border-zinc-800/70 bg-zinc-950/10 shadow-sm ring-1 ring-zinc-800/30 transition-[border-color,box-shadow,ring-width,ring-color] duration-200 open:border-rose-400/70 open:bg-rose-950/15 open:shadow-sm open:ring-2 open:ring-rose-400/25 sm:ml-1'
 
+/** Summary categoría: hero visual (lógica `<details>` intacta). Subcategorías siguen usando sus clases propias. */
 const storeCatalogSummaryCategoryClass =
-  'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-3 border-b-2 border-rose-900/35 transition hover:border-rose-600/45 group-open:border-rose-400/60'
+  'catalog-accordion-summary relative flex min-h-[140px] w-full cursor-pointer list-none items-center justify-between gap-3 overflow-hidden rounded-t-3xl border-0 transition-[filter] duration-200 hover:brightness-[1.03] active:brightness-[0.98] group-open:rounded-b-none sm:min-h-[160px]'
 
 const storeCatalogSummarySubClass =
   'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-3 border-b-2 border-zinc-700/45 transition hover:border-zinc-500/55 group-open:border-rose-400/60'
@@ -68,7 +69,7 @@ const storeCatalogSummarySubsubClass =
 /** Contador de productos activos a la derecha (misma idea en categoría, subcategoría y sub-sub). */
 const storeAccordionCountBadgeBase =
   'inline-flex min-h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums leading-none'
-const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-rose-950/70 text-rose-50 shadow-sm shadow-black/20`
+const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border-amber-600/50 bg-black/55 text-amber-50 shadow-md shadow-black/30 backdrop-blur-[2px]`
 const storeAccordionCountSub = `${storeAccordionCountBadgeBase} border-zinc-500/75 bg-zinc-950/85 text-zinc-100 shadow-sm shadow-black/15`
 const storeAccordionCountSubsub = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-black/35 text-rose-50 shadow-sm shadow-rose-950/20`
 
@@ -212,7 +213,7 @@ export function Storefront({
                 </button>
               )}
             </div>
-            <div className="space-y-10">
+            <div className="space-y-5 sm:space-y-6">
               {sortedCategories.map((cat) => (
                 <CategoryStoreDetails
                   key={cat.id}
@@ -238,6 +239,54 @@ function countActiveProductsInSub(node: SubcategoryRow): number {
   const inSs =
     node.subsubcategorias?.reduce((n, ss) => n + (ss.products?.length ?? 0), 0) ?? 0
   return direct + inSs
+}
+
+/** Primera foto de catálogo en la categoría (orden de subcategorías y productos); solo UI. */
+function pickCategoryHeroImagePath(cat: CategoryView): string | null {
+  for (const sub of cat.subcategories ?? []) {
+    for (const p of sub.products ?? []) {
+      const paths = collectProductImagePaths(p)
+      if (paths[0]) return paths[0]
+    }
+    for (const ss of sub.subsubcategorias ?? []) {
+      for (const p of ss.products ?? []) {
+        const paths = collectProductImagePaths(p)
+        if (paths[0]) return paths[0]
+      }
+    }
+  }
+  return null
+}
+
+function normalizeCategoryNameKey(name: string): string {
+  return name
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+}
+
+/**
+ * Banners en `public/images/` (copiados desde Desktop/categorias).
+ * Varias claves por si en Supabase el nombre está en singular/plural.
+ */
+const CATEGORY_HERO_PUBLIC_BY_NAME: Record<string, string> = {
+  arito: '/images/category-hero-arito.png',
+  aritos: '/images/category-hero-arito.png',
+  anillo: '/images/category-hero-anillo.png',
+  anillos: '/images/category-hero-anillo.png',
+  cadena: '/images/category-hero-cadena.png',
+  cadenas: '/images/category-hero-cadena.png',
+  dijes: '/images/category-hero-dijes.png',
+  pulsera: '/images/category-hero-pulseras.png',
+  pulseras: '/images/category-hero-pulseras.png',
+  tobillera: '/images/category-hero-tobilleras.png',
+  tobilleras: '/images/category-hero-tobilleras.png',
+}
+
+function pickCategoryHeroPublicUrl(cat: CategoryView): string | null {
+  const key = normalizeCategoryNameKey(cat.name)
+  return CATEGORY_HERO_PUBLIC_BY_NAME[key] ?? null
 }
 
 function AccordionChevron({ className }: { className?: string }) {
@@ -269,6 +318,11 @@ function CategoryStoreDetails({
   const catRef = useDetailsBulkRefs(collapseTick, expandTick)
   const subs = cat.subcategories ?? []
   const catProductCount = subs.reduce((n, s) => n + countActiveProductsInSub(s), 0)
+  const heroPublicUrl = pickCategoryHeroPublicUrl(cat)
+  const heroStoragePath = heroPublicUrl ? null : pickCategoryHeroImagePath(cat)
+  const heroUrl =
+    heroPublicUrl ?? (heroStoragePath ? getPublicUrlFromPath(heroStoragePath) : null)
+
   return (
     <details
       ref={catRef}
@@ -278,18 +332,37 @@ function CategoryStoreDetails({
       }}
       className={storeCatalogFrameCategoryClass}
     >
-      <summary
-        className={`${storeCatalogSummaryCategoryClass} rounded-t-xl bg-gradient-to-r from-rose-950/50 to-zinc-900/40 px-4 py-3.5 hover:from-rose-900/55 hover:to-zinc-800/50 active:scale-[0.998]`}
-      >
-        <span className="min-w-0 text-left">
-          <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-rose-300/90">
+      <summary className={storeCatalogSummaryCategoryClass}>
+        {heroUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={heroUrl}
+            alt=""
+            className="pointer-events-none absolute inset-0 h-full w-full object-cover"
+          />
+        ) : (
+          <div
+            className="pointer-events-none absolute inset-0 bg-gradient-to-br from-amber-950/95 via-zinc-950 to-zinc-950"
+            aria-hidden
+          />
+        )}
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/88 via-black/50 to-black/15 sm:via-black/38 sm:to-transparent"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/20"
+          aria-hidden
+        />
+        <span className="relative z-20 min-w-0 flex-1 px-4 py-4 text-left sm:px-5 sm:py-5">
+          <span className="text-[10px] font-semibold uppercase tracking-[0.22em] text-amber-200/85">
             Categoría
           </span>
-          <span className="mt-0.5 block truncate text-lg font-semibold tracking-wide text-rose-50">
+          <span className="mt-1 block truncate text-xl font-bold uppercase tracking-[0.08em] text-zinc-50 drop-shadow-[0_1px_8px_rgba(0,0,0,0.75)] sm:text-2xl">
             {upperCategoryLabel(cat.name)}
           </span>
         </span>
-        <span className="flex shrink-0 items-center gap-2">
+        <span className="relative z-20 flex shrink-0 items-center gap-2.5 pr-4 sm:pr-5">
           {catProductCount > 0 ? (
             <span
               className={storeAccordionCountCategory}
@@ -298,10 +371,10 @@ function CategoryStoreDetails({
               {catProductCount}
             </span>
           ) : null}
-          <AccordionChevron className="text-rose-300/80" />
+          <AccordionChevron className="h-5 w-5 shrink-0 text-amber-100/90 drop-shadow-md sm:h-6 sm:w-6" />
         </span>
       </summary>
-      <div className="border-t border-rose-900/20 bg-zinc-950/40 px-3 py-4 sm:px-4">
+      <div className="border-t border-amber-900/25 bg-zinc-950/50 px-3 py-4 sm:px-4">
         {subs.length > 0 ? (
           <div className="space-y-4">
             {subs.map((sub) => (
