@@ -13,12 +13,8 @@ export default async function HomePage() {
       data: { user },
     } = await supabase.auth.getUser()
     if (user?.email) {
-      const { data: adminRow } = await supabase
-        .from('admin_users')
-        .select('email')
-        .eq('email', user.email)
-        .maybeSingle()
-      isAdminSession = !!adminRow
+      const { data: ok } = await supabase.rpc('current_user_is_admin')
+      isAdminSession = ok === true
     }
   } catch {
     /* env o red */

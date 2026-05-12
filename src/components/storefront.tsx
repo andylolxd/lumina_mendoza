@@ -54,6 +54,7 @@ const collapseAllBtnClass =
   'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
 
 const STORE_INFINITE_BG_SRC = '/images/store-infinite-bg.png'
+const STORE_HEADER_BG_SRC = '/images/store-header-bg.png'
 
 /** Acordeón tienda — categoría: marco siempre con el mismo borde/anillo que al expandir. */
 const storeCatalogFrameCategoryClass =
@@ -173,8 +174,13 @@ export function Storefront({
 
   return (
     <div className="min-h-screen text-zinc-100">
-      <header className="sticky top-0 z-40 border-b border-zinc-800/50 bg-zinc-950/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
+      <header className="sticky top-0 z-40 overflow-hidden border-b border-zinc-800/50">
+        <div
+          className="pointer-events-none absolute inset-0 bg-cover bg-left-top bg-no-repeat"
+          style={{ backgroundImage: `url(${STORE_HEADER_BG_SRC})` }}
+          aria-hidden
+        />
+        <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
           <div className="min-w-0">
             <div className={`flex flex-wrap items-baseline gap-x-2 ${storeTitleFont.className}`}>
               <h1 className="m-0 bg-[linear-gradient(118deg,#fff5f0_0%,#f0d4cc_22%,#d4a088_52%,#c08081_78%,#a86f6f_100%)] bg-clip-text text-[1.35rem] font-semibold leading-tight tracking-[0.03em] text-transparent sm:text-[1.65rem]">

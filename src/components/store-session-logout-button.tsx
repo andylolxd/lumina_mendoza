@@ -1,6 +1,7 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/browser'
+import { headerNavPillRose } from '@/lib/store-header-nav'
 import { useRouter } from 'next/navigation'
 
 /** Cierra sesión y vuelve a la tienda (no al login de admin). */
@@ -9,7 +10,7 @@ export function StoreSessionLogoutButton() {
   return (
     <button
       type="button"
-      className="rounded-lg border border-zinc-500 bg-zinc-800/90 px-3 py-2 text-sm font-medium text-zinc-100 shadow-sm shadow-black/10 hover:bg-zinc-700"
+      className={headerNavPillRose}
       onClick={async () => {
         const sb = createClient()
         await sb.auth.signOut()
