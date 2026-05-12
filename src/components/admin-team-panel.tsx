@@ -21,13 +21,7 @@ function Feedback({ state }: { state: ActionResult | undefined }) {
   return <p className="text-xs text-red-400">{state.error}</p>
 }
 
-export function AdminTeamPanel({
-  initialEmails,
-  loginDomain,
-}: {
-  initialEmails: string[]
-  loginDomain: string
-}) {
+export function AdminTeamPanel({ initialEmails }: { initialEmails: string[] }) {
   const router = useRouter()
 
   const [createState, createAction, createPending] = useActionState(createAdminUserAction, undefined)
@@ -54,10 +48,6 @@ export function AdminTeamPanel({
     <div className="space-y-10">
       <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Administradores actuales</h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          El login usa el mismo email en Authentication y en esta tabla. Sin @, el usuario es{' '}
-          <code className="rounded bg-zinc-950 px-1 text-zinc-300">nombre@{loginDomain}</code>.
-        </p>
         <ul className="mt-3 space-y-1 text-sm text-zinc-200">
           {initialEmails.length === 0 ? (
             <li className="text-zinc-500">No hay filas en admin_users.</li>
@@ -73,9 +63,6 @@ export function AdminTeamPanel({
 
       <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Nuevo administrador</h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          Crea el usuario en Supabase Auth y lo agrega a admin_users (contraseña inicial).
-        </p>
         <form action={createAction} className="mt-3 space-y-2">
           <div className="flex flex-wrap gap-2">
             <input
@@ -105,7 +92,7 @@ export function AdminTeamPanel({
 
       <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Vincular usuario existente</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-white">
           Si ya creaste el usuario en Authentication (Dashboard) y solo falta permitirle el panel.
         </p>
         <form action={linkAction} className="mt-3 flex flex-wrap items-end gap-2">
@@ -167,7 +154,7 @@ export function AdminTeamPanel({
 
       <section className={`${storeCatalogFrameSubClass} p-4`}>
         <h2 className="text-sm font-semibold text-rose-200">Cambiar usuario de ingreso</h2>
-        <p className="mt-1 text-xs text-zinc-500">
+        <p className="mt-1 text-xs text-white">
           Actualiza el email en Auth y en admin_users. Si cambiás el tuyo, al guardar se cierra la sesión y
           entrás con el nuevo nombre.
         </p>
@@ -197,9 +184,6 @@ export function AdminTeamPanel({
 
       <section className="overflow-hidden rounded-xl border-2 border-red-600/55 bg-red-950/25 p-4 shadow-md ring-2 ring-red-400/20">
         <h2 className="text-sm font-semibold text-red-300">Quitar administrador</h2>
-        <p className="mt-1 text-xs text-zinc-500">
-          Quita la fila en admin_users y borra el usuario de Authentication. No se puede si es el único.
-        </p>
         <form
           action={removeAction}
           className="mt-3 space-y-2"

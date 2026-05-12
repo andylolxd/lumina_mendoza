@@ -6,6 +6,10 @@ import { SharedCartAdminBar } from '@/components/shared-cart-admin-bar'
 import { SharedCartView, type SharedCartProductVisual } from '@/components/shared-cart-view'
 import type { SharedCartItem } from '@/app/api/carts/route'
 import { collectProductImagePaths } from '@/lib/product-images'
+import {
+  storeTiendaBackgroundLayerClassName,
+  storeTiendaFullBackgroundStyle,
+} from '@/lib/store-theme'
 
 type CartStatus = 'pending' | 'accepted' | 'rejected'
 
@@ -84,68 +88,75 @@ export default async function SharedCartPage({
   }
 
   return (
-    <div className="min-h-screen bg-zinc-950 px-4 py-10 text-zinc-100">
-      <div className="mx-auto max-w-3xl">
-        <p className="mb-4 text-center text-sm text-rose-300">
-          Lumina Mendoza — carrito compartido
-        </p>
-        {err ? (
-          <p className="text-center text-zinc-400">No se encontró este carrito.</p>
-        ) : (
-          <>
-            <div
-              className={`mb-6 rounded-lg border px-3 py-2 text-center text-sm ${
-                status === 'pending'
-                  ? 'border-amber-800/50 bg-amber-950/25 text-amber-100'
+    <div className="relative isolate min-h-screen text-zinc-100">
+      <div
+        className={storeTiendaBackgroundLayerClassName}
+        style={storeTiendaFullBackgroundStyle}
+        aria-hidden
+      />
+      <div className="relative z-10 px-4 py-10">
+        <div className="mx-auto max-w-3xl">
+          <p className="mb-4 text-center text-sm text-white">
+            Lumina Mendoza — carrito compartido
+          </p>
+          {err ? (
+            <p className="text-center text-zinc-400">No se encontró este carrito.</p>
+          ) : (
+            <>
+              <div
+                className={`mb-6 rounded-lg border px-3 py-2 text-center text-sm ${
+                  status === 'pending'
+                    ? 'border-amber-800/50 bg-amber-950/25 text-amber-100'
+                    : status === 'accepted'
+                      ? 'border-green-800/50 bg-green-950/20 text-green-100'
+                      : 'border-zinc-700 bg-zinc-900/50 text-zinc-400'
+                }`}
+              >
+                {status === 'pending'
+                  ? 'Pedido pendiente: el stock se descuenta cuando el local acepta la venta.'
                   : status === 'accepted'
-                    ? 'border-green-800/50 bg-green-950/20 text-green-100'
-                    : 'border-zinc-700 bg-zinc-900/50 text-zinc-400'
-              }`}
-            >
-              {status === 'pending'
-                ? 'Pedido pendiente: el stock se descuenta cuando el local acepta la venta.'
-                : status === 'accepted'
-                  ? `Venta aceptada${acceptedAt ? ` el ${new Date(acceptedAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}` : ''}${acceptedBy ? ` · ${acceptedBy}` : ''}.`
-                  : 'Este pedido fue rechazado o cancelado.'}
-            </div>
+                    ? `Venta aceptada${acceptedAt ? ` el ${new Date(acceptedAt).toLocaleString('es-AR', { dateStyle: 'short', timeStyle: 'short' })}` : ''}${acceptedBy ? ` · ${acceptedBy}` : ''}.`
+                    : 'Este pedido fue rechazado o cancelado.'}
+              </div>
 
-            <SharedCartView
-              cartId={id}
-              initialItems={items}
-              productVisuals={productVisuals}
-              status={status}
-              isAdmin={isAdmin}
-              initialCustomerWhatsappE164={customerWhatsappE164}
-              initialAdminNote={adminNote}
-            />
-
-            {isAdmin && status === 'accepted' ? (
-              <SharedCartAcceptedClientNotify
+              <SharedCartView
                 cartId={id}
-                items={items}
+                initialItems={items}
+                productVisuals={productVisuals}
+                status={status}
+                isAdmin={isAdmin}
                 initialCustomerWhatsappE164={customerWhatsappE164}
+                initialAdminNote={adminNote}
               />
-            ) : null}
 
-            {isAdmin && status === 'pending' ? <SharedCartAdminBar cartId={id} status={status} /> : null}
-            {isAdmin ? (
-              <p className="mt-6 text-center">
-                <Link
-                  href="/admin/pedidos"
-                  className="text-sm text-rose-400 underline hover:text-rose-300"
-                >
-                  Ir a Pedidos (panel)
-                </Link>
-              </p>
-            ) : null}
-          </>
-        )}
-        <Link
-          href="/"
-          className="mt-8 block text-center text-sm text-rose-400 underline hover:text-rose-300"
-        >
-          Volver al catálogo
-        </Link>
+              {isAdmin && status === 'accepted' ? (
+                <SharedCartAcceptedClientNotify
+                  cartId={id}
+                  items={items}
+                  initialCustomerWhatsappE164={customerWhatsappE164}
+                />
+              ) : null}
+
+              {isAdmin && status === 'pending' ? <SharedCartAdminBar cartId={id} status={status} /> : null}
+              {isAdmin ? (
+                <p className="mt-6 text-center">
+                  <Link
+                    href="/admin/pedidos"
+                    className="text-sm text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
+                  >
+                    Ir a Pedidos (panel)
+                  </Link>
+                </p>
+              ) : null}
+            </>
+          )}
+          <Link
+            href="/"
+            className="mt-8 block text-center text-sm text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
+          >
+            Volver al catálogo
+          </Link>
+        </div>
       </div>
     </div>
   )

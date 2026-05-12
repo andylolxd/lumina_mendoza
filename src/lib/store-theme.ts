@@ -3,6 +3,19 @@ import type { CSSProperties } from 'react'
 export const STORE_HEADER_BG_SRC = '/images/store-header-bg.png'
 export const STORE_INFINITE_BG_SRC = '/images/store-infinite-bg.png'
 
+/** Fondo único tienda: una imagen `cover` con render pixelado; un leve zoom en la capa acentúa un poco el mosaico. */
+export const storeTiendaFullBackgroundStyle: CSSProperties = {
+  backgroundImage: `url(${STORE_INFINITE_BG_SRC})`,
+  backgroundRepeat: 'no-repeat',
+  backgroundSize: 'cover',
+  backgroundPosition: 'center top',
+  imageRendering: 'pixelated',
+}
+
+/** Capa fija + difuminado ligero (tienda y `/c/[id]`). */
+export const storeTiendaBackgroundLayerClassName =
+  'pointer-events-none fixed inset-0 z-0 min-h-[100dvh] origin-center scale-[1.05] blur-[2px]'
+
 /** Capa de fondo pixelada (misma que la tienda). */
 export const storeInfiniteBgLayerStyle: CSSProperties = {
   backgroundImage: `url(${STORE_INFINITE_BG_SRC})`,

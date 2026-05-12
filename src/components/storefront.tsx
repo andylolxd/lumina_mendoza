@@ -13,11 +13,11 @@ import { collectProductImagePaths } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
 import { headerNavPillMuted, headerNavPillRose } from '@/lib/store-header-nav'
 import {
-  STORE_HEADER_BG_SRC,
   storeCatalogFrameCategoryClass,
   storeCatalogFrameSubClass,
   storeCatalogFrameSubsubClass,
-  storeInfiniteBgLayerStyle,
+  storeTiendaBackgroundLayerClassName,
+  storeTiendaFullBackgroundStyle,
 } from '@/lib/store-theme'
 import type { CategoryRow, ProductRow, ProductVariantRow, SubcategoryRow, SubsubcategoriaRow } from '@/types/catalog'
 
@@ -149,105 +149,102 @@ export function Storefront({
   }, [categories])
 
   return (
-    <div className="min-h-screen text-zinc-100">
-      <header className="sticky top-0 z-40 overflow-hidden border-b border-zinc-800/50">
-        <div
-          className="pointer-events-none absolute inset-0 bg-cover bg-left-top bg-no-repeat"
-          style={{ backgroundImage: `url(${STORE_HEADER_BG_SRC})` }}
-          aria-hidden
-        />
-        <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
-          <div className="min-w-0">
-            <h1
-              className={`m-0 bg-[linear-gradient(118deg,#fff5f0_0%,#f0d4cc_22%,#d4a088_52%,#c08081_78%,#a86f6f_100%)] bg-clip-text text-[1.35rem] font-semibold leading-tight tracking-[0.03em] text-transparent sm:text-[1.65rem] ${storeTitleFont.className}`}
-            >
-              Lumina Mendoza
-            </h1>
-            <p className="mt-1 font-sans text-[0.6875rem] font-medium leading-snug tracking-wide text-amber-200/88 sm:text-[0.8125rem]">
-              Catálogo y pedidos por WhatsApp
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2.5">
-            {isAdminSession ? (
-              <>
-                <Link prefetch={false} href="/admin/catalog" className={headerNavPillRose}>
-                  Catálogo
-                </Link>
-                <Link prefetch={false} href="/admin/stock" className={headerNavPillRose}>
-                  Stock
-                </Link>
-                <Link prefetch={false} href="/admin/pedidos" className={headerNavPillRose}>
-                  Pedidos
-                </Link>
-                <Link prefetch={false} href="/admin/equipo" className={headerNavPillRose}>
-                  Equipo
-                </Link>
-                <StoreSessionLogoutButton />
-              </>
-            ) : (
-              <Link href="/admin/login" className={`${headerNavPillMuted} px-4`}>
-                Admin
-              </Link>
-            )}
-            <button
-              type="button"
-              onClick={() => setCartOpen(true)}
-              className={`relative ${headerNavPillRose}`}
-            >
-              Carrito
-              {lines.length > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-rose-700">
-                  {lines.reduce((n, l) => n + l.quantity, 0)}
-                </span>
-              )}
-            </button>
-          </div>
-        </div>
-      </header>
-
-      <div className="relative w-full">
-        <div
-          className="pointer-events-none absolute inset-0 z-0"
-          style={storeInfiniteBgLayerStyle}
-          aria-hidden
-        />
-        <main className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-3 sm:pt-4">
-          <div className="space-y-10">
-            {sortedCategories.length === 0 ? (
-              <p className="text-center text-zinc-400">
-                Pronto vas a ver el catálogo aquí. Configurá Supabase y cargá productos
-                desde el panel admin.
+    <div className="relative isolate min-h-screen text-zinc-100">
+      <div
+        className={storeTiendaBackgroundLayerClassName}
+        style={storeTiendaFullBackgroundStyle}
+        aria-hidden
+      />
+      <div className="relative z-10">
+        <header className="relative z-40 overflow-hidden border-b border-zinc-800/50 bg-zinc-950/70">
+          <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
+            <div className="min-w-0">
+              <h1
+                className={`m-0 bg-[linear-gradient(118deg,#fff5f0_0%,#f0d4cc_22%,#d4a088_52%,#c08081_78%,#a86f6f_100%)] bg-clip-text text-[1.35rem] font-semibold leading-tight tracking-[0.03em] text-transparent sm:text-[1.65rem] ${storeTitleFont.className}`}
+              >
+                Lumina Mendoza
+              </h1>
+              <p className="mt-1 font-sans text-[0.6875rem] font-medium leading-snug tracking-wide text-amber-200/88 sm:text-[0.8125rem]">
+                Catálogo y pedidos por WhatsApp
               </p>
-            ) : (
-              <>
-                <div className="flex justify-end">
-                  {showExpandAll ? (
-                    <button type="button" className={collapseAllBtnClass} onClick={handleExpandAll}>
-                      Abrir todo
-                    </button>
-                  ) : (
-                    <button type="button" className={collapseAllBtnClass} onClick={handleCollapseAll}>
-                      Contraer todo
-                    </button>
-                  )}
-                </div>
-                <div className="space-y-5 sm:space-y-6">
-                  {sortedCategories.map((cat) => (
-                    <CategoryStoreDetails
-                      key={cat.id}
-                      cat={cat}
-                      collapseTick={collapseTick}
-                      expandTick={expandTick}
-                      bulkLockRef={bulkLockRef}
-                      onUserOpenedDetail={handleDetailsToggle}
-                    />
-                  ))}
-                </div>
-              </>
-            )}
+            </div>
+            <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2.5">
+              {isAdminSession ? (
+                <>
+                  <Link prefetch={false} href="/admin/catalog" className={headerNavPillRose}>
+                    Catálogo
+                  </Link>
+                  <Link prefetch={false} href="/admin/stock" className={headerNavPillRose}>
+                    Stock
+                  </Link>
+                  <Link prefetch={false} href="/admin/pedidos" className={headerNavPillRose}>
+                    Pedidos
+                  </Link>
+                  <Link prefetch={false} href="/admin/equipo" className={headerNavPillRose}>
+                    Equipo
+                  </Link>
+                  <StoreSessionLogoutButton />
+                </>
+              ) : (
+                <Link href="/admin/login" className={`${headerNavPillMuted} px-4`}>
+                  Admin
+                </Link>
+              )}
+              <button
+                type="button"
+                onClick={() => setCartOpen(true)}
+                className={`relative ${headerNavPillRose}`}
+              >
+                Carrito
+                {lines.length > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-rose-700">
+                    {lines.reduce((n, l) => n + l.quantity, 0)}
+                  </span>
+                )}
+              </button>
+            </div>
           </div>
-        </main>
-        <StoreFooter />
+        </header>
+
+        <div className="relative w-full">
+          <main className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-3 sm:pt-4">
+            <div className="space-y-10">
+              {sortedCategories.length === 0 ? (
+                <p className="text-center text-zinc-400">
+                  Pronto vas a ver el catálogo aquí. Configurá Supabase y cargá productos
+                  desde el panel admin.
+                </p>
+              ) : (
+                <>
+                  <div className="flex justify-end">
+                    {showExpandAll ? (
+                      <button type="button" className={collapseAllBtnClass} onClick={handleExpandAll}>
+                        Abrir todo
+                      </button>
+                    ) : (
+                      <button type="button" className={collapseAllBtnClass} onClick={handleCollapseAll}>
+                        Contraer todo
+                      </button>
+                    )}
+                  </div>
+                  <div className="space-y-5 sm:space-y-6">
+                    {sortedCategories.map((cat) => (
+                      <CategoryStoreDetails
+                        key={cat.id}
+                        cat={cat}
+                        collapseTick={collapseTick}
+                        expandTick={expandTick}
+                        bulkLockRef={bulkLockRef}
+                        onUserOpenedDetail={handleDetailsToggle}
+                      />
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          </main>
+          <StoreFooter />
+        </div>
       </div>
 
       <StoreCartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />

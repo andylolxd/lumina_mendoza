@@ -39,9 +39,9 @@ export function SharedCartAdminBar({
 
   return (
     <div className="mt-6 rounded-xl border border-rose-800/50 bg-rose-950/25 p-4">
-      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-rose-300/90">Panel admin</p>
-      <p className="mb-3 text-sm text-zinc-400">
-        Al <strong className="text-zinc-200">aceptar venta</strong> se descuenta el stock del depósito. Rechazá si el
+      <p className="mb-3 text-xs font-medium uppercase tracking-wide text-white">Panel admin</p>
+      <p className="mb-3 text-sm text-white">
+        Al <strong className="text-white">aceptar venta</strong> se descuenta el stock del depósito. Rechazá si el
         cliente no compra.
       </p>
       <div className="flex flex-wrap gap-2">

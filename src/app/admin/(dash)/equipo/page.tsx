@@ -1,5 +1,4 @@
 import { AdminTeamPanel } from '@/components/admin-team-panel'
-import { getAuthLoginDomain } from '@/lib/auth-login'
 import { requireAdmin } from '@/lib/admin'
 import { getAdminEmails } from './actions'
 
@@ -15,8 +14,6 @@ export default async function EquipoPage() {
   } catch (e) {
     serviceError = e instanceof Error ? e.message : 'No se pudo cargar la lista.'
   }
-
-  const loginDomain = getAuthLoginDomain()
 
   return (
     <div className="space-y-6">
@@ -39,7 +36,7 @@ export default async function EquipoPage() {
           </p>
         </div>
       ) : (
-        <AdminTeamPanel initialEmails={emails} loginDomain={loginDomain} />
+        <AdminTeamPanel initialEmails={emails} />
       )}
     </div>
   )

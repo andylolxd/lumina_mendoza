@@ -11,7 +11,7 @@ export function StoreFooter() {
   const year = new Date().getFullYear()
 
   return (
-    <footer className="relative z-10 border-t border-zinc-800/60 bg-zinc-950/40 px-4 py-10 backdrop-blur-[2px]">
+    <footer className="relative z-10 border-t border-zinc-800/60 bg-zinc-950/55 px-4 py-10">
       <div className="mx-auto max-w-5xl">
         <nav
           className="flex flex-wrap items-center justify-center gap-x-4 gap-y-3"

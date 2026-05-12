@@ -276,14 +276,9 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                 const showActions = tab === 'pendientes' && row.status === 'pending'
                 const showHistorialDelete =
                   tab === 'historial' && (row.status === 'accepted' || row.status === 'rejected')
-                const dateTimeRowClass =
-                  tab === 'pendientes'
-                    ? 'text-xs text-white tabular-nums'
-                    : 'text-xs text-zinc-500 sm:tabular-nums'
+                const dateTimeRowClass = 'text-xs text-white tabular-nums'
                 const cartLinkClass =
-                  tab === 'pendientes'
-                    ? 'inline-block text-sm font-medium text-amber-400 underline decoration-amber-500/55 underline-offset-2 hover:text-amber-300'
-                    : 'inline-block text-sm text-rose-400 underline decoration-rose-400/50 underline-offset-2 hover:text-rose-300'
+                  'inline-block text-sm font-medium text-amber-400 underline decoration-amber-500/55 underline-offset-2 hover:text-amber-300'
                 return (
                   <li
                     key={row.id}
@@ -344,7 +339,11 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                         </p>
                       ) : null}
                       {row.status === 'accepted' && row.accepted_at ? (
-                        <p className="text-xs text-zinc-500">
+                        <p
+                          className={
+                            tab === 'historial' ? 'text-xs text-white' : 'text-xs text-zinc-500'
+                          }
+                        >
                           Aceptado{' '}
                           {new Date(row.accepted_at).toLocaleString('es-AR', {
                             dateStyle: 'short',
@@ -354,7 +353,7 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                         </p>
                       ) : null}
                       {row.status === 'rejected' ? (
-                        <p className="text-xs text-zinc-500">Cerrado sin venta (rechazado).</p>
+                        <p className="text-xs text-white">Cerrado sin venta (rechazado).</p>
                       ) : null}
                       <p className="pt-1">
                         <Link href={cartUrl} className={cartLinkClass}>

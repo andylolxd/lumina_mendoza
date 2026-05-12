@@ -288,7 +288,7 @@ export function SharedCartView({
                       <button
                         type="button"
                         onClick={() => removeLine(idx)}
-                        className="ml-auto text-xs text-rose-400 underline hover:text-rose-300"
+                        className="ml-auto text-xs text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
                       >
                         Quitar del pedido
                       </button>
@@ -303,24 +303,24 @@ export function SharedCartView({
         })}
       </div>
 
-      <p className="mt-6 flex flex-wrap items-baseline justify-between gap-2 border-t border-zinc-800 pt-4 text-base font-semibold">
+      <p className="mt-6 flex flex-wrap items-baseline justify-between gap-2 border-t border-zinc-800 pt-4 text-base font-semibold text-white">
         <span>Total</span>
-        <span className="text-rose-100">{formatMoneyArs(subtotal)}</span>
+        <span>{formatMoneyArs(subtotal)}</span>
       </p>
 
       {isAdmin && !canEdit && initialAdminNote ? (
         <div className="mt-6 rounded-xl border border-zinc-700 bg-zinc-900/35 p-4">
-          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Nota interna</h3>
-          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">{initialAdminNote}</p>
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-white">Nota interna</h3>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-white">{initialAdminNote}</p>
         </div>
       ) : null}
 
       {canEdit ? (
         <div className="mt-8 space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
           <div className="border-b border-zinc-800 pb-6">
-            <h3 className="text-sm font-semibold text-rose-200">Nota interna</h3>
-            <p className="mt-1 text-xs text-zinc-500">
-              Solo la ve el equipo. Se muestra en <strong className="text-zinc-400">Pedidos</strong> junto al estado del
+            <h3 className="text-sm font-semibold text-white">Nota interna</h3>
+            <p className="mt-1 text-xs text-white">
+              Solo la ve el equipo. Se muestra en <strong className="text-white">Pedidos</strong> junto al estado del
               pedido. Podés borrarla cuando quieras.
             </p>
             <textarea
@@ -351,13 +351,13 @@ export function SharedCartView({
               >
                 Borrar nota
               </button>
-              <span className="text-[11px] text-zinc-600">{adminNote.length}/500</span>
+              <span className="text-[11px] text-white">{adminNote.length}/500</span>
             </div>
           </div>
 
           <div>
-            <h3 className="text-sm font-semibold text-rose-200">Guardar cambios al pedido</h3>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h3 className="text-sm font-semibold text-white">Guardar cambios al pedido</h3>
+            <p className="mt-1 text-xs text-white">
               Ajustá cantidades o quitá productos antes de enviarle al cliente. Luego tocá Guardar.
             </p>
             {saveErr ? <p className="mt-2 text-sm text-amber-300">{saveErr}</p> : null}
@@ -372,15 +372,15 @@ export function SharedCartView({
           </div>
 
           <div className="border-t border-zinc-800 pt-6">
-            <h3 className="text-sm font-semibold text-rose-200">Enviar pedido por WhatsApp</h3>
-            <p className="mt-1 text-xs text-zinc-500">
+            <h3 className="text-sm font-semibold text-white">Enviar pedido por WhatsApp</h3>
+            <p className="mt-1 text-xs text-white">
               Código de país (por defecto Argentina 549) y el número sin repetir el código. Usá «Solo guardar número»
               para guardarlo en el pedido (así queda al aceptar la venta y para el aviso de confirmación). Luego podés
               abrir WhatsApp con el detalle y el enlace.
             </p>
             <div className="mt-4 flex max-w-xl flex-col gap-3 sm:flex-row sm:items-end">
               <div className="sm:w-28">
-                <label htmlFor="shared-cart-wa-country" className="block text-xs font-medium text-zinc-400">
+                <label htmlFor="shared-cart-wa-country" className="block text-xs font-medium text-white">
                   Código país
                 </label>
                 <input
@@ -396,7 +396,7 @@ export function SharedCartView({
                 />
               </div>
               <div className="min-w-0 flex-1">
-                <label htmlFor="shared-cart-wa-local" className="block text-xs font-medium text-zinc-400">
+                <label htmlFor="shared-cart-wa-local" className="block text-xs font-medium text-white">
                   Número (sin código país)
                 </label>
                 <input
