@@ -156,7 +156,7 @@ export function Storefront({
         aria-hidden
       />
       <div className="relative z-10">
-        <header className="relative z-40 overflow-hidden border-b border-zinc-800/50 bg-zinc-950/70">
+        <header className="sticky top-0 z-40 overflow-hidden border-b border-zinc-800/50 bg-zinc-950/70">
           <div className="relative mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
             <div className="min-w-0">
               <h1
