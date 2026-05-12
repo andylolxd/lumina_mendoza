@@ -100,7 +100,7 @@ export function LoginForm() {
         </form>
         <Link
           href="/"
-          className="mt-6 block text-center text-xs text-zinc-500 hover:text-zinc-300"
+          className="mt-6 block rounded-xl border border-zinc-600/90 bg-zinc-900/40 px-4 py-3 text-center text-sm font-medium text-zinc-200 shadow-sm shadow-black/25 ring-1 ring-zinc-800/40 transition hover:border-rose-500/55 hover:bg-rose-950/25 hover:text-rose-100 hover:ring-rose-900/35"
         >
           Volver a la tienda
         </Link>

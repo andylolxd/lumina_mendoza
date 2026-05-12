@@ -4,7 +4,7 @@ import { useMemo, useState } from 'react'
 import { useCart, type CartLine } from '@/context/cart-context'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { appBaseUrl, getPublicUrlFromPath } from '@/lib/publicUrl'
-import { formatSharedCartWhatsAppDetail } from '@/lib/whatsapp-cart-detail'
+import { formatWhatsAppDetailFromStoreLines } from '@/lib/whatsapp-cart-detail'
 import type { SharedCartItem } from '@/app/api/carts/route'
 
 type StoreCartDrawerProps = {
@@ -70,13 +70,13 @@ export function StoreCartDrawer({ open, onClose, title = 'Tu carrito' }: StoreCa
 
       const base = appBaseUrl()
       const cartUrl = `${base}/c/${js.id}`
-      const detail = formatSharedCartWhatsAppDetail(items)
+      const detail = formatWhatsAppDetailFromStoreLines(lines)
       const msg = [
-        '¡Hola! Quiero comprar en *Lumina Mendoza*:',
+        '¡Hola! Quiero comprar en Lumina Mendoza:',
         '',
         detail,
         '',
-        `*Total:* ${formatMoneyArs(subtotal)}`,
+        `Total: ${formatMoneyArs(subtotal)}`,
         '',
         `Ver mi carrito: ${cartUrl}`,
         '',
@@ -194,10 +194,6 @@ export function StoreCartDrawer({ open, onClose, title = 'Tu carrito' }: StoreCa
             <span className="text-zinc-400">Subtotal</span>
             <span className="font-semibold text-rose-100">{formatMoneyArs(subtotal)}</span>
           </div>
-          <p className="mb-3 text-[11px] leading-snug text-zinc-500">
-            Podés pedir más cantidad de la que figura en depósito: el descuento de stock lo hace el local cuando confirma
-            el pago.
-          </p>
           <div className="flex gap-2">
             <button
               type="button"

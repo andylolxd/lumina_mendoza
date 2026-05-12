@@ -65,6 +65,13 @@ const storeCatalogSummarySubClass =
 const storeCatalogSummarySubsubClass =
   'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 border-b-2 border-rose-900/35 transition hover:border-rose-800/50 group-open:border-rose-400/60'
 
+/** Contador de productos activos a la derecha (misma idea en categoría, subcategoría y sub-sub). */
+const storeAccordionCountBadgeBase =
+  'inline-flex min-h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums leading-none'
+const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-rose-950/70 text-rose-50 shadow-sm shadow-black/20`
+const storeAccordionCountSub = `${storeAccordionCountBadgeBase} border-zinc-500/75 bg-zinc-950/85 text-zinc-100 shadow-sm shadow-black/15`
+const storeAccordionCountSubsub = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-black/35 text-rose-50 shadow-sm shadow-rose-950/20`
+
 function useDetailsBulkRefs(collapseTick: number, expandTick: number) {
   const ref = useRef<HTMLDetailsElement>(null)
   useEffect(() => {
@@ -284,8 +291,11 @@ function CategoryStoreDetails({
         </span>
         <span className="flex shrink-0 items-center gap-2">
           {catProductCount > 0 ? (
-            <span className="hidden rounded-lg border border-rose-800/50 bg-rose-950/60 px-2 py-1 text-[11px] font-medium text-rose-200/90 sm:inline">
-              {catProductCount} producto{catProductCount === 1 ? '' : 's'}
+            <span
+              className={storeAccordionCountCategory}
+              title={`${catProductCount} producto${catProductCount === 1 ? '' : 's'}`}
+            >
+              {catProductCount}
             </span>
           ) : null}
           <AccordionChevron className="text-rose-300/80" />
@@ -361,7 +371,10 @@ function SubcategoryStoreSection({
         </span>
         <span className="flex shrink-0 items-center gap-2">
           {nProducts > 0 ? (
-            <span className="rounded-md border border-zinc-600/70 bg-zinc-950/70 px-2 py-0.5 text-[11px] font-medium text-zinc-300">
+            <span
+              className={storeAccordionCountSub}
+              title={`${nProducts} producto${nProducts === 1 ? '' : 's'}`}
+            >
               {nProducts}
             </span>
           ) : null}
@@ -438,7 +451,10 @@ function SubsubStoreSection({
         </span>
         <span className="flex shrink-0 items-center gap-1.5">
           {n > 0 ? (
-            <span className="rounded border border-rose-800/60 bg-black/20 px-1.5 py-0.5 text-[10px] font-medium text-rose-200">
+            <span
+              className={storeAccordionCountSubsub}
+              title={`${n} producto${n === 1 ? '' : 's'}`}
+            >
               {n}
             </span>
           ) : null}
@@ -563,7 +579,6 @@ function StoreProductLine({
                   {variants.map((v) => (
                     <option key={v.id} value={v.id} disabled={!isStoreVariantListed(v)}>
                       {v.size_label}
-                      {isStoreVariantListed(v) && v.stock_quantity < 1 ? ' (sin stock en depósito)' : ''}
                     </option>
                   ))}
                 </select>
@@ -571,12 +586,6 @@ function StoreProductLine({
             ) : null}
             {noActiveVariants ? (
               <p className="mt-1 text-xs text-zinc-500">No disponible por el momento</p>
-            ) : null}
-            {!noActiveVariants ? (
-              <p className="mt-1 text-[11px] text-zinc-500">
-                Stock en depósito: <span className="tabular-nums text-zinc-400">{displayStock}</span> (podés pedir
-                más; se confirma al pagar)
-              </p>
             ) : null}
             <div className="mt-2 flex items-center gap-2">
               <button

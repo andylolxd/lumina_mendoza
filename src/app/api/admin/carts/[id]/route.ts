@@ -107,3 +107,44 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ error: 'No se pudo guardar' }, { status: 500 })
   }
 }
+
+/** Borrar del historial (solo aceptados o rechazados). Los pendientes se cierran con Rechazar. */
+export async function DELETE(_req: Request, ctx: { params: Promise<{ id: string }> }) {
+  const adminEmail = await getAdminEmailFromRequest()
+  if (!adminEmail) {
+    return NextResponse.json({ error: 'No autorizado' }, { status: 401 })
+  }
+
+  const { id: cartId } = await ctx.params
+  if (!cartId || !/^[0-9a-f-]{36}$/i.test(cartId)) {
+    return NextResponse.json({ error: 'ID inválido' }, { status: 400 })
+  }
+
+  try {
+    const svc = createServiceClient()
+    const { data: row, error: fetchErr } = await svc
+      .from('shared_carts')
+      .select('id, status')
+      .eq('id', cartId)
+      .maybeSingle()
+    if (fetchErr) throw fetchErr
+    if (!row) return NextResponse.json({ error: 'Carrito no encontrado' }, { status: 404 })
+    const st = (row as { status?: string }).status
+    if (st === 'pending') {
+      return NextResponse.json(
+        { error: 'Los pedidos pendientes no se borran acá: rechazalos o aceptalos desde Pedidos.' },
+        { status: 409 },
+      )
+    }
+    if (st !== 'accepted' && st !== 'rejected') {
+      return NextResponse.json({ error: 'Estado no permitido para borrar' }, { status: 409 })
+    }
+
+    const { error } = await svc.from('shared_carts').delete().eq('id', cartId)
+    if (error) throw error
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    console.error(e)
+    return NextResponse.json({ error: 'No se pudo eliminar' }, { status: 500 })
+  }
+}

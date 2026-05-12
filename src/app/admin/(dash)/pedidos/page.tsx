@@ -64,6 +64,11 @@ export default async function PedidosPage() {
         la página del carrito logueada como admin). Una <strong className="text-zinc-300">nota interna</strong> para el
         equipo (envío, recordatorios) la cargás desde «Ver carrito / link cliente» con el pedido pendiente.
       </p>
+      <p className="mt-2 max-w-2xl text-sm text-zinc-500">
+        En la pestaña <strong className="text-zinc-400">Historial</strong> podés{' '}
+        <strong className="text-zinc-400">eliminar</strong> pedidos aceptados o rechazados para limpiar la lista: el
+        enlace del carrito deja de funcionar y no se revierte el stock ya descontado.
+      </p>
       <div className="mt-8">
         <PedidosPanel initialRows={rows} />
       </div>

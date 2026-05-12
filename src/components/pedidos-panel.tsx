@@ -42,9 +42,11 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
   const router = useRouter()
   const [tab, setTab] = useState<'pendientes' | 'historial'>('pendientes')
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [busyKind, setBusyKind] = useState<'accept' | 'reject' | null>(null)
+  const [busyKind, setBusyKind] = useState<'accept' | 'reject' | 'delete' | null>(null)
   const [err, setErr] = useState<string | null>(null)
-  const [confirm, setConfirm] = useState<{ kind: 'accept' | 'reject'; row: PedidoListRow } | null>(null)
+  const [confirm, setConfirm] = useState<
+    { kind: 'accept' | 'reject' | 'delete'; row: PedidoListRow } | null
+  >(null)
 
   const pendientes = useMemo(
     () => initialRows.filter((r) => r.status === 'pending'),
@@ -63,6 +65,30 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [confirm])
+
+  async function deleteCart(id: string) {
+    setBusyId(id)
+    setBusyKind('delete')
+    setErr(null)
+    try {
+      const res = await fetch(`/api/admin/carts/${id}`, {
+        method: 'DELETE',
+        credentials: 'same-origin',
+      })
+      const js = (await res.json()) as { error?: string }
+      if (!res.ok) {
+        setErr(js.error ?? 'Error')
+        return
+      }
+      setConfirm(null)
+      router.refresh()
+    } catch {
+      setErr('Error de red')
+    } finally {
+      setBusyId(null)
+      setBusyKind(null)
+    }
+  }
 
   async function act(id: string, path: 'accept' | 'reject') {
     setBusyId(id)
@@ -106,11 +132,19 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
             role="dialog"
             aria-modal="true"
             aria-labelledby="pedido-confirm-title"
-            className="max-h-[min(88vh,520px)] w-full max-w-md overflow-y-auto rounded-2xl border-2 border-rose-900/50 bg-zinc-950 p-6 shadow-2xl shadow-black/50 ring-1 ring-rose-950/30"
+            className={
+              confirm.kind === 'delete'
+                ? 'max-h-[min(88vh,520px)] w-full max-w-md overflow-y-auto rounded-2xl border-2 border-red-900/55 bg-zinc-950 p-6 shadow-2xl shadow-black/50 ring-1 ring-red-950/25'
+                : 'max-h-[min(88vh,520px)] w-full max-w-md overflow-y-auto rounded-2xl border-2 border-rose-900/50 bg-zinc-950 p-6 shadow-2xl shadow-black/50 ring-1 ring-rose-950/30'
+            }
             onMouseDown={(e) => e.stopPropagation()}
           >
             <h2 id="pedido-confirm-title" className="text-lg font-semibold text-rose-100">
-              {confirm.kind === 'accept' ? 'Confirmar venta' : 'Confirmar rechazo'}
+              {confirm.kind === 'accept'
+                ? 'Confirmar venta'
+                : confirm.kind === 'reject'
+                  ? 'Confirmar rechazo'
+                  : 'Eliminar del historial'}
             </h2>
             <p className="mt-3 text-sm leading-relaxed text-zinc-300">
               {confirm.kind === 'accept' ? (
@@ -119,10 +153,16 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                   <strong className="text-zinc-100">descontará el stock</strong> del depósito según las cantidades del
                   carrito. Verificá que el pago esté acordado.
                 </>
-              ) : (
+              ) : confirm.kind === 'reject' ? (
                 <>
                   Vas a <strong className="text-zinc-100">rechazar</strong> este pedido. No se descuenta stock; el
                   cliente puede ver el estado en el enlace del carrito.
+                </>
+              ) : (
+                <>
+                  Vas a <strong className="text-zinc-100">borrar</strong> este registro del panel. El enlace público
+                  del carrito <strong className="text-zinc-100">dejará de funcionar</strong>. No se revierte stock: si la
+                  venta ya estaba aceptada, el inventario ya quedó descontado.
                 </>
               )}
             </p>
@@ -163,15 +203,23 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                 className={
                   confirm.kind === 'accept'
                     ? 'rounded-lg bg-green-700 px-4 py-2.5 text-sm font-semibold text-white hover:bg-green-600 disabled:opacity-50'
-                    : 'rounded-lg border border-amber-800/60 bg-amber-950/40 px-4 py-2.5 text-sm font-semibold text-amber-100 hover:bg-amber-950/60 disabled:opacity-50'
+                    : confirm.kind === 'reject'
+                      ? 'rounded-lg border border-amber-800/60 bg-amber-950/40 px-4 py-2.5 text-sm font-semibold text-amber-100 hover:bg-amber-950/60 disabled:opacity-50'
+                      : 'rounded-lg border border-red-800/70 bg-red-900/50 px-4 py-2.5 text-sm font-semibold text-red-50 hover:bg-red-800/60 disabled:opacity-50'
                 }
-                onClick={() => void act(confirm.row.id, confirm.kind)}
+                onClick={() =>
+                  confirm.kind === 'delete'
+                    ? void deleteCart(confirm.row.id)
+                    : void act(confirm.row.id, confirm.kind)
+                }
               >
                 {busyId === confirm.row.id
                   ? 'Procesando…'
                   : confirm.kind === 'accept'
                     ? 'Sí, aceptar venta'
-                    : 'Sí, rechazar pedido'}
+                    : confirm.kind === 'reject'
+                      ? 'Sí, rechazar pedido'
+                      : 'Sí, eliminar del historial'}
               </button>
             </div>
           </div>
@@ -225,6 +273,8 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                 const cartUrl = `${base}/c/${row.id}`
                 const loading = busyId === row.id
                 const showActions = tab === 'pendientes' && row.status === 'pending'
+                const showHistorialDelete =
+                  tab === 'historial' && (row.status === 'accepted' || row.status === 'rejected')
                 return (
                   <li
                     key={row.id}
@@ -324,6 +374,20 @@ export function PedidosPanel({ initialRows }: { initialRows: PedidoListRow[] }) 
                             className="min-h-[44px] min-w-[6.5rem] rounded-lg border border-zinc-500 bg-zinc-900 px-3 py-2 text-xs font-medium text-zinc-200 hover:bg-zinc-800 disabled:opacity-50 sm:min-h-0"
                           >
                             {loading && busyKind === 'reject' ? '…' : 'Rechazar'}
+                          </button>
+                        </div>
+                      </div>
+                    ) : showHistorialDelete ? (
+                      <div className="flex w-full shrink-0 flex-col items-stretch gap-2 border-t border-zinc-800/80 pt-3 sm:mt-0 sm:w-auto sm:flex-row sm:items-center sm:justify-end sm:border-t-0 sm:border-l sm:border-zinc-800/80 sm:pl-4 sm:pt-0">
+                        <div className="flex w-full justify-end sm:w-auto">
+                          <button
+                            type="button"
+                            disabled={loading}
+                            aria-label="Eliminar este pedido del historial"
+                            onClick={() => setConfirm({ kind: 'delete', row })}
+                            className="min-h-[44px] rounded-lg border border-red-800/60 bg-red-950/35 px-4 py-2 text-xs font-semibold text-red-100 hover:bg-red-950/55 disabled:opacity-50 sm:min-h-0"
+                          >
+                            {loading && busyKind === 'delete' ? '…' : 'Eliminar del historial'}
                           </button>
                         </div>
                       </div>
