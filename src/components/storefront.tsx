@@ -2,14 +2,15 @@
 
 import Link from 'next/link'
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { useCart, type CartLine } from '@/context/cart-context'
+import { useCart } from '@/context/cart-context'
 import { StoreSessionLogoutButton } from '@/components/store-session-logout-button'
+import { StoreCartDrawer } from '@/components/store-cart-drawer'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { ProductImageLightbox, type ProductLightboxPayload } from '@/components/product-image-lightbox'
 import { collectProductImagePaths } from '@/lib/product-images'
-import { appBaseUrl, getPublicUrlFromPath } from '@/lib/publicUrl'
+import { getPublicUrlFromPath } from '@/lib/publicUrl'
+import { headerNavPillRose } from '@/lib/store-header-nav'
 import type { CategoryRow, ProductRow, ProductVariantRow, SubcategoryRow, SubsubcategoriaRow } from '@/types/catalog'
-import type { SharedCartItem } from '@/app/api/carts/route'
 
 function sortByOrder<T extends { sort_order: number }>(arr: T[] | null | undefined) {
   return [...(arr ?? [])].sort((a, b) => a.sort_order - b.sort_order)
@@ -43,7 +44,7 @@ function storeVariantDataKey(variants: ProductVariantRow[] | null | undefined) {
 }
 
 const collapseAllBtnClass =
-  'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-1.5 text-xs font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
+  'shrink-0 rounded-lg border border-zinc-600 bg-zinc-800/80 px-3 py-2 text-sm font-medium text-zinc-200 transition hover:border-rose-600/50 hover:bg-zinc-700 hover:text-rose-100'
 
 /** Acordeón tienda: misma lógica de borde/anillo que el catálogo admin (rosa al abrir). */
 const storeCatalogFrameCategoryClass =
@@ -84,9 +85,8 @@ export function Storefront({
   categories: CategoryRow[]
   isAdminSession?: boolean
 }) {
-  const { lines, removeLine, setQty, subtotal, clear } = useCart()
+  const { lines, removeLine, setQty } = useCart()
   const [cartOpen, setCartOpen] = useState(false)
-  const [sending, setSending] = useState(false)
   const [collapseTick, setCollapseTick] = useState(0)
   const [expandTick, setExpandTick] = useState(0)
   const [showExpandAll, setShowExpandAll] = useState(false)
@@ -135,84 +135,6 @@ export function Storefront({
     }))
   }, [categories])
 
-  const cartLineGroups = useMemo(() => {
-    const map = new Map<
-      string,
-      { categoryId: string; categoryName: string; categorySortOrder: number; lines: CartLine[] }
-    >()
-    for (const l of lines) {
-      const key = l.categoryId
-      const cur = map.get(key)
-      if (!cur) {
-        map.set(key, {
-          categoryId: l.categoryId,
-          categoryName: l.categoryName,
-          categorySortOrder: l.categorySortOrder,
-          lines: [l],
-        })
-      } else {
-        cur.lines.push(l)
-      }
-    }
-    return [...map.values()].sort(
-      (a, b) =>
-        a.categorySortOrder - b.categorySortOrder ||
-        a.categoryName.localeCompare(b.categoryName, 'es'),
-    )
-  }, [lines])
-
-  async function handleComprar() {
-    if (lines.length === 0) return
-    setSending(true)
-    try {
-      const items: SharedCartItem[] = lines.map((l) => ({
-        product_id: l.productId,
-        name: l.name,
-        unit_price: l.unitPrice,
-        quantity: l.quantity,
-        ...(l.variantId
-          ? { variant_id: l.variantId, variant_label: l.variantLabel ?? undefined }
-          : {}),
-      }))
-      const res = await fetch('/api/carts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ items }),
-      })
-      const js = (await res.json()) as { id?: string; error?: string }
-      if (!res.ok || !js.id) throw new Error(js.error ?? 'Error')
-
-      const base = appBaseUrl()
-      const cartUrl = `${base}/c/${js.id}`
-      const detail = lines
-        .map((l) => {
-          const t = l.unitPrice * l.quantity
-          return `• ${l.name} x${l.quantity} — ${formatMoneyArs(t)} (${formatMoneyArs(l.unitPrice)} c/u)`
-        })
-        .join('\n')
-      const msg = [
-        '¡Hola! Quiero comprar en *Lumina Mendoza*:',
-        '',
-        detail,
-        '',
-        `*Total:* ${formatMoneyArs(subtotal)}`,
-        '',
-        `Ver mi carrito: ${cartUrl}`,
-        '',
-        '_El stock del depósito lo confirma el local al aceptar el pedido._',
-      ].join('\n')
-
-      const phone = process.env.NEXT_PUBLIC_WHATSAPP_E164 ?? ''
-      const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`
-      window.open(url, '_blank', 'noopener,noreferrer')
-    } catch (e) {
-      console.error(e)
-      alert('No se pudo preparar WhatsApp. Revisá la configuración del sitio.')
-    } finally {
-      setSending(false)
-    }
-  }
-
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-950 via-zinc-950 to-zinc-950 text-zinc-100">
       <header className="sticky top-0 z-40 border-b border-rose-900/40 bg-zinc-950/90 backdrop-blur-md">
@@ -223,35 +145,19 @@ export function Storefront({
             </h1>
             <p className="text-xs text-rose-300/80">Catálogo y pedidos por WhatsApp</p>
           </div>
-          <div className="flex flex-wrap items-center justify-end gap-2">
+          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2.5">
             {isAdminSession ? (
               <>
-                <Link
-                  prefetch={false}
-                  href="/admin/catalog"
-                  className="rounded-lg border border-rose-800/50 bg-rose-950/40 px-2.5 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-900/50"
-                >
+                <Link prefetch={false} href="/admin/catalog" className={headerNavPillRose}>
                   Catálogo
                 </Link>
-                <Link
-                  prefetch={false}
-                  href="/admin/stock"
-                  className="rounded-lg border border-rose-800/50 bg-rose-950/40 px-2.5 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-900/50"
-                >
+                <Link prefetch={false} href="/admin/stock" className={headerNavPillRose}>
                   Stock
                 </Link>
-                <Link
-                  prefetch={false}
-                  href="/admin/pedidos"
-                  className="rounded-lg border border-rose-800/50 bg-rose-950/40 px-2.5 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-900/50"
-                >
+                <Link prefetch={false} href="/admin/pedidos" className={headerNavPillRose}>
                   Pedidos
                 </Link>
-                <Link
-                  prefetch={false}
-                  href="/admin/equipo"
-                  className="rounded-lg border border-rose-800/50 bg-rose-950/40 px-2.5 py-1.5 text-xs font-medium text-rose-100 hover:bg-rose-900/50"
-                >
+                <Link prefetch={false} href="/admin/equipo" className={headerNavPillRose}>
                   Equipo
                 </Link>
                 <StoreSessionLogoutButton />
@@ -259,7 +165,7 @@ export function Storefront({
             ) : (
               <Link
                 href="/admin/login"
-                className="rounded-lg border border-zinc-600 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800"
+                className="rounded-lg border border-zinc-600 bg-zinc-900/40 px-3 py-2.5 text-sm font-medium text-zinc-300 shadow-sm shadow-black/10 hover:bg-zinc-800"
               >
                 Admin
               </Link>
@@ -267,7 +173,7 @@ export function Storefront({
             <button
               type="button"
               onClick={() => setCartOpen(true)}
-              className="relative rounded-lg bg-rose-600 px-4 py-2 text-sm font-medium text-white shadow-lg shadow-rose-900/40 hover:bg-rose-500"
+              className="relative rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-rose-900/40 hover:bg-rose-500"
             >
               Carrito
               {lines.length > 0 && (
@@ -315,131 +221,7 @@ export function Storefront({
         )}
       </main>
 
-      {cartOpen && (
-        <div className="fixed inset-0 z-50 flex bg-black/50">
-          <button
-            type="button"
-            className="min-h-0 min-w-0 flex-1 cursor-default border-0 bg-transparent p-0"
-            aria-label="Cerrar carrito"
-            onMouseDown={() => setCartOpen(false)}
-          />
-          <div className="flex h-full w-full max-w-md shrink-0 flex-col border-l border-zinc-800 bg-zinc-950 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
-              <h2 className="font-semibold">Tu carrito</h2>
-              <button
-                type="button"
-                onClick={() => setCartOpen(false)}
-                className="rounded p-2 text-zinc-400 hover:bg-zinc-800"
-                aria-label="Cerrar"
-              >
-                ✕
-              </button>
-            </div>
-            <div className="flex-1 overflow-y-auto px-4 py-3">
-              {lines.length === 0 ? (
-                <p className="text-sm text-zinc-500">Todavía no agregaste productos.</p>
-              ) : (
-                <div className="space-y-6">
-                  {cartLineGroups.map((group) => (
-                    <section key={group.categoryId} aria-label={group.categoryName}>
-                      <h3 className="mb-2 border-b border-zinc-800 pb-1 text-[11px] font-semibold uppercase tracking-wide text-rose-300/90">
-                        {upperCategoryLabel(group.categoryName)}
-                      </h3>
-                      <ul className="space-y-4">
-                        {group.lines.map((l) => {
-                          const thumb = l.imagePath ? getPublicUrlFromPath(l.imagePath) : null
-                          return (
-                            <li
-                              key={`${l.productId}-${l.variantId ?? 'base'}`}
-                              className="flex flex-col gap-2 rounded-lg border border-zinc-800 p-3"
-                            >
-                              <div className="flex gap-3">
-                                {thumb ? (
-                                  // eslint-disable-next-line @next/next/no-img-element
-                                  <img
-                                    src={thumb}
-                                    alt=""
-                                    className="h-16 w-16 shrink-0 rounded-lg border border-zinc-700/80 object-cover"
-                                  />
-                                ) : (
-                                  <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border border-zinc-800 bg-zinc-900 text-[9px] text-zinc-600">
-                                    sin foto
-                                  </div>
-                                )}
-                                <div className="min-w-0 flex-1">
-                                <div className="flex justify-between gap-2">
-                                  <span className="text-sm font-medium leading-snug">{l.name}</span>
-                                  <button
-                                    type="button"
-                                    onClick={() => removeLine(l.productId, l.variantId)}
-                                    className="shrink-0 text-xs text-rose-400 hover:underline"
-                                  >
-                                    Quitar
-                                  </button>
-                                </div>
-                                <div className="mt-2 flex items-center gap-2 text-sm">
-                                  <button
-                                    type="button"
-                                    className="h-8 w-8 rounded border border-zinc-700"
-                                    onClick={() => setQty(l.productId, l.variantId, l.quantity - 1)}
-                                  >
-                                    −
-                                  </button>
-                                  <span className="w-8 text-center">{l.quantity}</span>
-                                  <button
-                                    type="button"
-                                    className="h-8 w-8 rounded border border-zinc-700"
-                                    onClick={() => setQty(l.productId, l.variantId, l.quantity + 1)}
-                                  >
-                                    +
-                                  </button>
-                                  <span className="ml-auto text-rose-200">
-                                    {formatMoneyArs(l.unitPrice * l.quantity)}
-                                  </span>
-                                </div>
-                                </div>
-                              </div>
-                            </li>
-                          )
-                        })}
-                      </ul>
-                    </section>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="border-t border-zinc-800 p-4">
-              <div className="mb-3 flex justify-between text-sm">
-                <span className="text-zinc-400">Subtotal</span>
-                <span className="font-semibold text-rose-100">
-                  {formatMoneyArs(subtotal)}
-                </span>
-              </div>
-              <p className="mb-3 text-[11px] leading-snug text-zinc-500">
-                Podés pedir más cantidad de la que figura en depósito: el descuento de stock lo hace el local cuando
-                confirma el pago.
-              </p>
-              <div className="flex gap-2">
-                <button
-                  type="button"
-                  onClick={() => clear()}
-                  className="flex-1 rounded-lg border border-zinc-600 py-2.5 text-sm"
-                >
-                  Vaciar
-                </button>
-                <button
-                  type="button"
-                  disabled={lines.length === 0 || sending}
-                  onClick={handleComprar}
-                  className="flex-[2] rounded-lg bg-green-600 py-2.5 text-sm font-semibold text-white hover:bg-green-500 disabled:opacity-40"
-                >
-                  {sending ? '…' : 'Comprar por WhatsApp'}
-                </button>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
+      <StoreCartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
     </div>
   )
 }

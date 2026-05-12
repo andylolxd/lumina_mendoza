@@ -8,7 +8,7 @@ export function LogoutButton() {
   return (
     <button
       type="button"
-      className="rounded-lg border border-zinc-600 px-3 py-1.5 text-xs hover:bg-zinc-800"
+      className="rounded-lg border border-rose-900/45 bg-rose-950/25 px-3 py-2 text-sm font-medium text-rose-100 shadow-sm shadow-black/10 transition hover:border-rose-700/50 hover:bg-rose-900/40"
       onClick={async () => {
         const sb = createClient()
         await sb.auth.signOut()

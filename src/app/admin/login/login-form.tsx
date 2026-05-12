@@ -1,6 +1,6 @@
 'use client'
 
-import { getAuthLoginDomain, usernameOrEmailToSupabaseEmail } from '@/lib/auth-login'
+import { usernameOrEmailToSupabaseEmail } from '@/lib/auth-login'
 import { createClient } from '@/lib/supabase/browser'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
@@ -44,6 +44,16 @@ export function LoginForm() {
 
   return (
     <div className="flex min-h-screen flex-col items-center justify-center bg-zinc-950 px-4 text-zinc-100">
+      <div
+        className="mb-5 w-full max-w-sm rounded-xl border border-rose-900/35 bg-rose-950/20 px-4 py-3 text-center shadow-inner shadow-black/20"
+        role="note"
+      >
+        <p className="text-sm leading-relaxed text-rose-50/95">
+          ¿Viniste a comprar? <strong className="text-white">No hace falta</strong> iniciar sesión: volvé a la tienda y
+          armá tu pedido por el catálogo.
+        </p>
+      </div>
+
       <div className="w-full max-w-sm rounded-2xl border border-zinc-800 bg-zinc-900/60 p-8 shadow-xl">
         <h1 className="text-center text-lg font-semibold text-rose-200">Lumina Mendoza</h1>
         <p className="mt-1 text-center text-xs text-zinc-500">Acceso administración</p>
@@ -57,21 +67,11 @@ export function LoginForm() {
               type="text"
               autoComplete="username"
               spellCheck={false}
-              placeholder="ej. lisbetcilla"
               className="mt-1 w-full rounded-lg border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
             />
-            <p className="mt-1 text-[11px] leading-snug text-zinc-600">
-              Sin correo: escribís solo el usuario (se convierte en{' '}
-              <span className="font-mono text-zinc-500">
-                usuario@{getAuthLoginDomain()}
-              </span>
-              ). Si ponés un mail completo (con @), también sirve. Ese mismo email tiene que existir en
-              Supabase Authentication y en la tabla <span className="font-mono">admin_users</span>: si solo
-              cambiaste la tabla, creá o renombrá el usuario en Authentication o usá el panel Equipo.
-            </p>
           </div>
           <div>
             <label className="text-xs text-zinc-400" htmlFor="password">

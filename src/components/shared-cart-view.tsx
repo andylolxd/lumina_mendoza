@@ -27,6 +27,7 @@ export function SharedCartView({
   status,
   isAdmin,
   initialCustomerWhatsappE164,
+  initialAdminNote = null,
 }: {
   cartId: string
   initialItems: SharedCartItem[]
@@ -34,6 +35,8 @@ export function SharedCartView({
   status: CartStatus
   isAdmin: boolean
   initialCustomerWhatsappE164: string | null
+  /** Nota interna (panel Pedidos); solo editable si el pedido sigue pendiente. */
+  initialAdminNote?: string | null
 }) {
   const router = useRouter()
   const [items, setItems] = useState<SharedCartItem[]>(initialItems)
@@ -46,7 +49,9 @@ export function SharedCartView({
   const [waLocal, setWaLocal] = useState(initialSplit.local)
   const [saveBusy, setSaveBusy] = useState(false)
   const [phoneBusy, setPhoneBusy] = useState(false)
+  const [noteBusy, setNoteBusy] = useState(false)
   const [saveErr, setSaveErr] = useState<string | null>(null)
+  const [adminNote, setAdminNote] = useState(initialAdminNote ?? '')
 
   const visualByProduct = useMemo(() => {
     const m = new Map<string, SharedCartProductVisual>()
@@ -63,6 +68,10 @@ export function SharedCartView({
     setWaCountry(s.country)
     setWaLocal(s.local)
   }, [initialCustomerWhatsappE164])
+
+  useEffect(() => {
+    setAdminNote(initialAdminNote ?? '')
+  }, [initialAdminNote])
 
   const canEdit = isAdmin && status === 'pending'
 
@@ -117,6 +126,29 @@ export function SharedCartView({
       setSaveErr('Error de red')
     } finally {
       setSaveBusy(false)
+    }
+  }
+
+  async function saveAdminNote(next: string | null) {
+    setNoteBusy(true)
+    setSaveErr(null)
+    try {
+      const res = await fetch(`/api/admin/carts/${cartId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ admin_note: next }),
+      })
+      const js = (await res.json()) as { error?: string }
+      if (!res.ok) {
+        setSaveErr(js.error ?? 'No se pudo guardar la nota')
+        return
+      }
+      router.refresh()
+    } catch {
+      setSaveErr('Error de red')
+    } finally {
+      setNoteBusy(false)
     }
   }
 
@@ -280,8 +312,53 @@ export function SharedCartView({
         <span className="text-rose-100">{formatMoneyArs(subtotal)}</span>
       </p>
 
+      {isAdmin && !canEdit && initialAdminNote ? (
+        <div className="mt-6 rounded-xl border border-zinc-700 bg-zinc-900/35 p-4">
+          <h3 className="text-[11px] font-semibold uppercase tracking-wide text-zinc-500">Nota interna</h3>
+          <p className="mt-2 whitespace-pre-wrap text-sm leading-relaxed text-zinc-300">{initialAdminNote}</p>
+        </div>
+      ) : null}
+
       {canEdit ? (
         <div className="mt-8 space-y-6 rounded-xl border border-zinc-800 bg-zinc-900/30 p-4">
+          <div className="border-b border-zinc-800 pb-6">
+            <h3 className="text-sm font-semibold text-rose-200">Nota interna</h3>
+            <p className="mt-1 text-xs text-zinc-500">
+              Solo la ve el equipo. Se muestra en <strong className="text-zinc-400">Pedidos</strong> junto al estado del
+              pedido. Podés borrarla cuando quieras.
+            </p>
+            <textarea
+              value={adminNote}
+              onChange={(e) => setAdminNote(e.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder="Ej. enviar a Rivadavia, retira por depósito…"
+              className="mt-3 w-full resize-y rounded-lg border border-zinc-600 bg-zinc-950 px-3 py-2 text-sm text-zinc-100 placeholder:text-zinc-600 focus:border-rose-600/50 focus:outline-none focus:ring-1 focus:ring-rose-800/40"
+            />
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <button
+                type="button"
+                disabled={noteBusy}
+                onClick={() => void saveAdminNote(adminNote.trim() === '' ? null : adminNote.trim().slice(0, 500))}
+                className="rounded-lg bg-rose-700 px-4 py-2 text-sm font-semibold text-white hover:bg-rose-600 disabled:opacity-50"
+              >
+                {noteBusy ? 'Guardando…' : 'Guardar nota'}
+              </button>
+              <button
+                type="button"
+                disabled={noteBusy}
+                onClick={() => {
+                  setAdminNote('')
+                  void saveAdminNote(null)
+                }}
+                className="rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-40"
+              >
+                Borrar nota
+              </button>
+              <span className="text-[11px] text-zinc-600">{adminNote.length}/500</span>
+            </div>
+          </div>
+
           <div>
             <h3 className="text-sm font-semibold text-rose-200">Guardar cambios al pedido</h3>
             <p className="mt-1 text-xs text-zinc-500">

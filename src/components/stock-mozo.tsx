@@ -138,12 +138,21 @@ export function StockMozo({
           </svg>
         </summary>
         <div className="space-y-3 p-3">
-          <input
-            className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
-            placeholder="Buscar producto…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
+          <div>
+            <label htmlFor="stock-mozo-product-search" className="sr-only">
+              Buscar producto
+            </label>
+            <input
+              id="stock-mozo-product-search"
+              name="stock_mozo_product_search"
+              type="text"
+              autoComplete="off"
+              className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+              placeholder="Buscar producto…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
 
           <div className="max-h-64 overflow-y-auto rounded border border-zinc-800">
             {filtered.map((p) => {
@@ -202,9 +211,13 @@ export function StockMozo({
                 <li key={l.product.id} className="flex items-center gap-2">
                   <span className="flex-1 truncate">{l.product.name}</span>
                   <input
+                    id={`stock-mozo-line-qty-${l.product.id}`}
+                    name={`stock_mozo_line_qty_${l.product.id}`}
                     type="number"
                     min={1}
                     max={l.product.stock_quantity}
+                    autoComplete="off"
+                    aria-label={`Cantidad de ${l.product.name}`}
                     className="w-14 rounded border border-zinc-700 bg-zinc-950 px-1 text-center text-xs"
                     value={l.qty}
                     onChange={(e) =>

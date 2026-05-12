@@ -22,12 +22,16 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     return NextResponse.json({ error: 'JSON inválido' }, { status: 400 })
   }
 
-  const b = body as { items?: unknown; customer_whatsapp_e164?: string | null }
+  const b = body as { items?: unknown; customer_whatsapp_e164?: string | null; admin_note?: string | null }
   const hasItems = b.items !== undefined
   const hasPhone = Object.prototype.hasOwnProperty.call(b, 'customer_whatsapp_e164')
+  const hasNote = Object.prototype.hasOwnProperty.call(b, 'admin_note')
 
-  if (!hasItems && !hasPhone) {
-    return NextResponse.json({ error: 'Enviá items y/o customer_whatsapp_e164' }, { status: 400 })
+  if (!hasItems && !hasPhone && !hasNote) {
+    return NextResponse.json(
+      { error: 'Enviá items, customer_whatsapp_e164 y/o admin_note' },
+      { status: 400 },
+    )
   }
 
   let parsedItems: ReturnType<typeof parseSharedCartItems> | null = null
@@ -52,6 +56,17 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
     }
   }
 
+  let noteVal: string | null | undefined = undefined
+  if (hasNote) {
+    const raw = b.admin_note
+    if (raw === null || raw === '') {
+      noteVal = null
+    } else {
+      const t = String(raw).trim().slice(0, 500)
+      noteVal = t.length > 0 ? t : null
+    }
+  }
+
   try {
     const svc = createServiceClient()
     const { data: row, error: fetchErr } = await svc
@@ -65,9 +80,14 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       return NextResponse.json({ error: 'Solo se puede editar un pedido pendiente' }, { status: 409 })
     }
 
-    const updatePayload: { items?: SharedCartItem[]; customer_whatsapp_e164?: string | null } = {}
+    const updatePayload: {
+      items?: SharedCartItem[]
+      customer_whatsapp_e164?: string | null
+      admin_note?: string | null
+    } = {}
     if (parsedItems?.ok) updatePayload.items = parsedItems.items
     if (phoneDigits !== undefined) updatePayload.customer_whatsapp_e164 = phoneDigits
+    if (noteVal !== undefined) updatePayload.admin_note = noteVal
 
     const { error } = await svc
       .from('shared_carts')
@@ -80,6 +100,7 @@ export async function PATCH(req: Request, ctx: { params: Promise<{ id: string }>
       ok: true,
       ...(parsedItems?.ok ? { items: parsedItems.items } : {}),
       ...(phoneDigits !== undefined ? { customer_whatsapp_e164: phoneDigits } : {}),
+      ...(noteVal !== undefined ? { admin_note: noteVal } : {}),
     })
   } catch (e) {
     console.error(e)

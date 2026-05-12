@@ -19,7 +19,9 @@ export default async function PedidosPage() {
   const supabase = await createClient()
   const { data: carts, error } = await supabase
     .from('shared_carts')
-    .select('id, items, status, created_at, accepted_at, accepted_by_email, customer_whatsapp_e164')
+    .select(
+      'id, items, status, created_at, accepted_at, accepted_by_email, customer_whatsapp_e164, admin_note',
+    )
     .order('created_at', { ascending: false })
     .limit(200)
 
@@ -37,6 +39,9 @@ export default async function PedidosPage() {
     const lineCount = Array.isArray(items) ? items.length : 0
     const status = c.status as PedidoListRow['status']
     const wa = (c as { customer_whatsapp_e164?: string | null }).customer_whatsapp_e164
+    const noteRaw = (c as { admin_note?: string | null }).admin_note
+    const adminNote =
+      typeof noteRaw === 'string' && noteRaw.trim().length > 0 ? noteRaw.trim().slice(0, 500) : null
     return {
       id: c.id,
       status: status === 'accepted' || status === 'rejected' ? status : 'pending',
@@ -44,6 +49,7 @@ export default async function PedidosPage() {
       accepted_at: c.accepted_at,
       accepted_by_email: c.accepted_by_email,
       customer_whatsapp_e164: typeof wa === 'string' && wa.replace(/\D/g, '').length > 0 ? wa.replace(/\D/g, '') : null,
+      admin_note: adminNote,
       total: cartTotal(items),
       lineCount,
     }
@@ -55,7 +61,8 @@ export default async function PedidosPage() {
       <p className="mt-2 max-w-2xl text-sm text-zinc-400">
         Los clientes envían el carrito por WhatsApp con un enlace. El stock del depósito{' '}
         <strong className="text-zinc-200">solo se descuenta</strong> cuando tocás «Aceptar venta» (desde acá o desde
-        la página del carrito logueada como admin).
+        la página del carrito logueada como admin). Una <strong className="text-zinc-300">nota interna</strong> para el
+        equipo (envío, recordatorios) la cargás desde «Ver carrito / link cliente» con el pedido pendiente.
       </p>
       <div className="mt-8">
         <PedidosPanel initialRows={rows} />

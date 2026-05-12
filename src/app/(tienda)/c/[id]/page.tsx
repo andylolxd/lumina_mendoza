@@ -26,12 +26,15 @@ export default async function SharedCartPage({
   let acceptedAt: string | null = null
   let acceptedBy: string | null = null
   let customerWhatsappE164: string | null = null
+  let adminNote: string | null = null
 
   try {
     const sb = createServiceClient()
     const { data, error } = await sb
       .from('shared_carts')
-      .select('items, expires_at, status, accepted_at, accepted_by_email, customer_whatsapp_e164')
+      .select(
+        'items, expires_at, status, accepted_at, accepted_by_email, customer_whatsapp_e164, admin_note',
+      )
       .eq('id', id)
       .maybeSingle()
     if (error || !data) err = true
@@ -43,6 +46,9 @@ export default async function SharedCartPage({
       customerWhatsappE164 =
         (data as { customer_whatsapp_e164?: string | null }).customer_whatsapp_e164?.replace(/\D/g, '') ?? null
       if (customerWhatsappE164 === '') customerWhatsappE164 = null
+      const rawNote = (data as { admin_note?: string | null }).admin_note
+      adminNote =
+        typeof rawNote === 'string' && rawNote.trim().length > 0 ? rawNote.trim().slice(0, 500) : null
     }
   } catch {
     err = true
@@ -110,6 +116,7 @@ export default async function SharedCartPage({
               status={status}
               isAdmin={isAdmin}
               initialCustomerWhatsappE164={customerWhatsappE164}
+              initialAdminNote={adminNote}
             />
 
             {isAdmin && status === 'accepted' ? (
