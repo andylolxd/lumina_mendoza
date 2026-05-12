@@ -13,13 +13,10 @@ export const requireAdmin = cache(async () => {
   } = await supabase.auth.getUser()
   if (!user?.email) redirect('/admin/login')
 
-  const { data: row } = await supabase
-    .from('admin_users')
-    .select('email')
-    .eq('email', user.email)
-    .maybeSingle()
+  /** RPC SECURITY DEFINER: evita depender del filtro `.ilike` en PostgREST y de policies recursivas. */
+  const { data: isAdmin, error: rpcErr } = await supabase.rpc('current_user_is_admin')
 
-  if (!row) {
+  if (rpcErr || isAdmin !== true) {
     await supabase.auth.signOut()
     redirect('/admin/login?error=no_autorizado')
   }

@@ -37,48 +37,54 @@ export function AdminDashShell({ children }: { children: React.ReactNode }) {
   return (
     <div className="min-h-screen bg-gradient-to-b from-rose-950 via-zinc-950 to-zinc-950 text-zinc-100">
       <header className="sticky top-0 z-40 border-b border-rose-900/40 bg-zinc-950/90 backdrop-blur-md">
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4 px-4 py-4">
-          <div>
-            <h1 className="text-xl font-semibold tracking-tight text-rose-100">Lumina Mendoza</h1>
-            <p className="text-xs text-rose-300/80">Catálogo y pedidos por WhatsApp</p>
-          </div>
-          <div className="flex flex-wrap items-center justify-end gap-x-3 gap-y-2.5">
-            {showCatalog ? (
-              <Link prefetch={false} href="/admin/catalog" className={headerNavPillRose}>
-                Catálogo
-              </Link>
-            ) : null}
-            {showStock ? (
-              <Link prefetch={false} href="/admin/stock" className={headerNavPillRose}>
-                Stock
-              </Link>
-            ) : null}
-            {showPedidos ? (
-              <Link prefetch={false} href="/admin/pedidos" className={headerNavPillRose}>
-                Pedidos
-              </Link>
-            ) : null}
-            {showEquipo ? (
-              <Link prefetch={false} href="/admin/equipo" className={headerNavPillRose}>
-                Equipo
-              </Link>
-            ) : null}
-            <Link prefetch={false} href="/" className={headerNavPillMuted}>
-              Ver tienda
-            </Link>
-            <LogoutButton />
-            <button
-              type="button"
-              onClick={() => setCartOpen(true)}
-              className="relative rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-rose-900/40 hover:bg-rose-500"
-            >
-              Carrito
-              {cartCount > 0 && (
-                <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-rose-700">
-                  {cartCount}
-                </span>
-              )}
-            </button>
+        <div className="mx-auto max-w-5xl px-4 py-4">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div className="min-w-0 shrink-0">
+              <h1 className="text-xl font-semibold tracking-tight text-rose-100">Lumina Mendoza</h1>
+              <p className="text-xs text-rose-300/80">Catálogo y pedidos por WhatsApp</p>
+            </div>
+            <div className="flex min-w-0 flex-1 flex-col gap-2 lg:max-w-[min(100%,28rem)] lg:items-end xl:max-w-none">
+              <div className="flex flex-wrap justify-end gap-x-3 gap-y-2">
+                {showCatalog ? (
+                  <Link prefetch={false} href="/admin/catalog" className={headerNavPillRose}>
+                    Catálogo
+                  </Link>
+                ) : null}
+                {showStock ? (
+                  <Link prefetch={false} href="/admin/stock" className={headerNavPillRose}>
+                    Stock
+                  </Link>
+                ) : null}
+                {showPedidos ? (
+                  <Link prefetch={false} href="/admin/pedidos" className={headerNavPillRose}>
+                    Pedidos
+                  </Link>
+                ) : null}
+                {showEquipo ? (
+                  <Link prefetch={false} href="/admin/equipo" className={headerNavPillRose}>
+                    Equipo
+                  </Link>
+                ) : null}
+              </div>
+              <div className="flex flex-wrap justify-end gap-x-3 gap-y-2">
+                <Link prefetch={false} href="/" className={headerNavPillMuted}>
+                  Ver tienda
+                </Link>
+                <LogoutButton />
+                <button
+                  type="button"
+                  onClick={() => setCartOpen(true)}
+                  className="relative rounded-lg bg-rose-600 px-4 py-2.5 text-sm font-medium text-white shadow-lg shadow-rose-900/40 hover:bg-rose-500"
+                >
+                  Carrito
+                  {cartCount > 0 && (
+                    <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-white px-1 text-[10px] font-bold text-rose-700">
+                      {cartCount}
+                    </span>
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       </header>

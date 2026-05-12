@@ -1,19 +1,19 @@
 'use client'
 
 import { usernameOrEmailToSupabaseEmail } from '@/lib/auth-login'
-import { createClient } from '@/lib/supabase/browser'
 import Link from 'next/link'
-import { useRouter, useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'next/navigation'
 import { useState } from 'react'
 
 export function LoginForm() {
-  const router = useRouter()
   const searchParams = useSearchParams()
   const errParam = searchParams.get('error')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(
-    errParam === 'no_autorizado' ? 'Esta cuenta no puede administrar el catálogo.' : '',
+    errParam === 'no_autorizado'
+      ? 'Esta cuenta no puede administrar el catálogo. El email tiene que estar en la tabla admin_users de Supabase (el mismo que en Authentication).'
+      : '',
   )
   const [loading, setLoading] = useState(false)
 
@@ -28,18 +28,30 @@ export function LoginForm() {
       return
     }
 
-    const sb = createClient()
-    const { error: e2 } = await sb.auth.signInWithPassword({
-      email: emailForAuth,
-      password,
+    const loginRes = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'same-origin',
+      body: JSON.stringify({ username, password }),
     })
+    const loginBody = (await loginRes.json().catch(() => ({}))) as { error?: string; ok?: boolean }
     setLoading(false)
-    if (e2) {
-      setError(e2.message)
+    if (!loginRes.ok) {
+      if (loginRes.status === 403 || loginBody.error === 'no_autorizado') {
+        setError(
+          'Esta cuenta no puede administrar el catálogo. El email tiene que estar en la tabla admin_users de Supabase (el mismo que en Authentication).',
+        )
+        return
+      }
+      setError(
+        loginBody.error
+          ? `${loginBody.error} — Email que usamos en Supabase: ${emailForAuth}`
+          : `No se pudo iniciar sesión (${loginRes.status}).`,
+      )
       return
     }
-    router.push('/admin/catalog')
-    router.refresh()
+
+    window.location.assign('/admin/catalog')
   }
 
   return (

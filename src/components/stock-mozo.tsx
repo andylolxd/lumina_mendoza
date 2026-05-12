@@ -1,9 +1,12 @@
 'use client'
 
 import { createClient } from '@/lib/supabase/browser'
-import { formatMoneyArs } from '@/lib/format'
+import { formatCatalogPath } from '@/lib/catalog-tree'
+import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
+import { collectProductImagePaths } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import type { CategoryRow, ProductRow, SubcategoryRow, SubsubcategoriaRow } from '@/types/catalog'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 
 export type MozoProduct = {
   id: string
@@ -14,14 +17,264 @@ export type MozoProduct = {
   pathLabel: string
 }
 
-export function StockMozo({
+function sortByOrder<T extends { sort_order: number }>(arr: T[] | null | undefined): T[] {
+  return [...(arr ?? [])].sort((a, b) => a.sort_order - b.sort_order)
+}
+
+type CategoryView = Omit<CategoryRow, 'subcategories'> & {
+  subcategories: SubcategoryRow[]
+}
+
+/** Igual que la tienda: solo productos `active`; sin ramas vacías. */
+function sortCatalogLikeStore(categories: CategoryRow[]): CategoryView[] {
+  return sortByOrder(categories)
+    .map((c) => ({
+      ...c,
+      subcategories: sortByOrder(c.subcategories ?? [])
+        .map((s) => ({
+          ...s,
+          products: sortByOrder((s.products ?? []).filter((p) => p.active)),
+          subsubcategorias: sortByOrder(s.subsubcategorias ?? [])
+            .map((ss) => ({
+              ...ss,
+              products: sortByOrder((ss.products ?? []).filter((p) => p.active)),
+            }))
+            .filter((ss) => ss.products.length > 0),
+        }))
+        .filter((s) => s.products.length > 0 || s.subsubcategorias.length > 0),
+    }))
+    .filter((c) => c.subcategories.length > 0)
+}
+
+function productMatchesQuery(p: ProductRow, pathLabel: string, q: string): boolean {
+  const s = q.trim().toLowerCase()
+  if (!s) return true
+  return p.name.toLowerCase().includes(s) || pathLabel.toLowerCase().includes(s)
+}
+
+function filterStockTree(cats: CategoryView[], q: string): CategoryView[] {
+  const s = q.trim().toLowerCase()
+  if (!s) return cats
+  const out: CategoryView[] = []
+  for (const c of cats) {
+    const subs: SubcategoryRow[] = []
+    for (const sub of c.subcategories) {
+      const pathDirect = formatCatalogPath([c.name, sub.name, null])
+      const direct = sub.products.filter((p) => productMatchesQuery(p, pathDirect, s))
+      const ssOut: SubsubcategoriaRow[] = []
+      for (const ss of sub.subsubcategorias ?? []) {
+        const pathSs = formatCatalogPath([c.name, sub.name, ss.name])
+        const prods = ss.products.filter((p) => productMatchesQuery(p, pathSs, s))
+        if (prods.length > 0) ssOut.push({ ...ss, products: prods })
+      }
+      if (direct.length > 0 || ssOut.length > 0) {
+        subs.push({ ...sub, products: direct, subsubcategorias: ssOut })
+      }
+    }
+    if (subs.length > 0) out.push({ ...c, subcategories: subs })
+  }
+  return out
+}
+
+/** Misma cuenta que la tienda: productos listados en la sub (directos + sub-sub). */
+function countProductsInSub(node: SubcategoryRow): number {
+  const direct = node.products?.length ?? 0
+  const inSs =
+    node.subsubcategorias?.reduce((n, ss) => n + (ss.products?.length ?? 0), 0) ?? 0
+  return direct + inSs
+}
+
+function countProductsInTree(cats: CategoryView[]): number {
+  let n = 0
+  for (const c of cats) {
+    for (const sub of c.subcategories) {
+      n += countProductsInSub(sub)
+    }
+  }
+  return n
+}
+
+function toMozoProduct(p: ProductRow, pathSegments: [string, string, string | null]): MozoProduct {
+  const pathLabel = formatCatalogPath(pathSegments) || '—'
+  return {
+    id: p.id,
+    name: p.name,
+    price: Number(p.price),
+    stock_quantity: p.stock_quantity,
+    image_path: p.image_path,
+    pathLabel,
+  }
+}
+
+const chevron = () => (
+  <svg
+    className="h-4 w-4 shrink-0 text-zinc-500 transition-transform duration-200 ease-out group-open:rotate-180"
+    viewBox="0 0 20 20"
+    fill="currentColor"
+    aria-hidden
+  >
+    <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
+  </svg>
+)
+
+const storeAccordionCountBadgeBase =
+  'inline-flex min-h-[1.375rem] min-w-[1.375rem] shrink-0 items-center justify-center rounded-md border px-2 py-0.5 text-[11px] font-semibold tabular-nums leading-none'
+const storeAccordionCountCategory = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-rose-950/70 text-rose-50 shadow-sm shadow-black/20`
+const storeAccordionCountSub = `${storeAccordionCountBadgeBase} border-zinc-500/75 bg-zinc-950/85 text-zinc-100 shadow-sm shadow-black/15`
+const storeAccordionCountSubsub = `${storeAccordionCountBadgeBase} border-rose-800/55 bg-black/35 text-rose-50 shadow-sm shadow-rose-950/20`
+
+const frameCategory =
+  'group scroll-mt-2 overflow-hidden rounded-xl border-2 border-rose-900/45 bg-zinc-900/35 shadow-md shadow-black/20 ring-1 ring-zinc-800/40 transition-[border-color,box-shadow] duration-200 open:border-rose-500/55 open:ring-2 open:ring-rose-500/20'
+
+const frameSub =
+  'group overflow-hidden rounded-lg border-2 border-zinc-800/90 bg-zinc-950/25 shadow-sm ring-1 ring-zinc-800/35 transition-[border-color] duration-200 open:border-amber-700/45 open:ring-1 open:ring-amber-600/25'
+
+const frameSubsub =
+  'group overflow-hidden rounded-md border-2 border-rose-900/35 bg-zinc-950/20 shadow-sm ring-1 ring-zinc-800/30 transition-[border-color] duration-200 open:border-rose-500/40 open:bg-rose-950/10'
+
+const summaryCategory =
+  'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 border-b border-rose-900/30 bg-gradient-to-r from-rose-950/40 to-zinc-900/40 px-3 py-2.5 transition hover:from-rose-900/45 hover:to-zinc-800/50'
+
+const summarySub =
+  'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 border-b border-zinc-800/60 bg-zinc-900/50 px-3 py-2 transition hover:bg-zinc-800/60'
+
+const summarySubsub =
+  'catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 border-b border-rose-900/25 bg-rose-950/25 px-2.5 py-2 transition hover:bg-rose-950/40'
+
+const minusBtnClass =
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-rose-700/50 bg-zinc-950/90 text-lg font-semibold leading-none text-rose-100 shadow-inner shadow-black/20 transition hover:border-rose-500/70 hover:bg-rose-950/50 active:scale-95 disabled:pointer-events-none disabled:opacity-35'
+
+const plusBtnClass =
+  'flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border-2 border-rose-500/60 bg-gradient-to-b from-rose-600 to-rose-800 text-lg font-semibold leading-none text-white shadow-md shadow-rose-950/40 transition hover:from-rose-500 hover:to-rose-700 active:scale-95 disabled:pointer-events-none disabled:opacity-35'
+
+function StockProductLine({
+  product,
+  pathSegments,
+  ticketQty,
+  onInc,
+  onDec,
+}: {
+  product: ProductRow
+  pathSegments: [string, string, string | null]
+  ticketQty: number
+  onInc: () => void
+  onDec: () => void
+}) {
+  const mozo = toMozoProduct(product, pathSegments)
+  const paths = collectProductImagePaths(product)
+  const thumbUrl = paths[0] ? getPublicUrlFromPath(paths[0]) : null
+  const maxStock = product.stock_quantity
+  const addBlocked = maxStock < 1 || ticketQty >= maxStock
+  const unitPrice = mozo.price
+
+  return (
+    <article className="overflow-visible rounded-lg border border-red-500/45 bg-zinc-950/25 p-2 shadow-md ring-1 ring-red-500/25 sm:p-3">
+      <div className="min-w-0 rounded-lg border border-zinc-800/60 bg-zinc-900/45 p-3">
+        <h3 className="mb-2 text-sm font-medium leading-snug text-zinc-100">{product.name}</h3>
+        <div className="flex gap-3">
+          {paths.length > 0 ? (
+            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-zinc-700">
+              {thumbUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
+              ) : (
+                <div className="flex h-full w-full items-center justify-center text-[10px] text-zinc-500">
+                  foto
+                </div>
+              )}
+              {paths.length > 1 ? (
+                <span className="absolute bottom-1 right-1 rounded bg-black/65 px-1.5 py-0.5 text-[9px] font-medium text-zinc-200">
+                  +{paths.length - 1}
+                </span>
+              ) : null}
+            </div>
+          ) : (
+            <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-800 text-[10px] text-zinc-600">
+              sin foto
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            {product.description ? (
+              <p className="line-clamp-2 text-xs text-zinc-500">{product.description}</p>
+            ) : null}
+            <p className="mt-2 text-rose-300">{formatMoneyArs(unitPrice)}</p>
+            <p className="mt-1 text-[11px] text-zinc-500">
+              Stock ficha: {maxStock}
+              {mozo.pathLabel ? (
+                <span className="mt-0.5 block truncate text-[10px] text-zinc-600">
+                  {mozo.pathLabel}
+                </span>
+              ) : null}
+            </p>
+            <div className="mt-2 flex items-center gap-2">
+              <button
+                type="button"
+                disabled={ticketQty <= 0}
+                aria-label="Quitar uno del ticket"
+                onClick={onDec}
+                className={minusBtnClass}
+              >
+                −
+              </button>
+              <span className="min-w-[2rem] text-center text-sm font-semibold tabular-nums text-zinc-100">
+                {ticketQty}
+              </span>
+              <button
+                type="button"
+                disabled={addBlocked}
+                aria-label="Sumar uno al ticket"
+                onClick={onInc}
+                className={plusBtnClass}
+              >
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+function StockProductGrid({
   products,
+  pathSegmentsForProduct,
+  ticketQty,
+  onAdjust,
+}: {
+  products: ProductRow[]
+  pathSegmentsForProduct: (_p: ProductRow) => [string, string, string | null]
+  ticketQty: (productId: string) => number
+  onAdjust: (product: ProductRow, pathSegments: [string, string, string | null], delta: number) => void
+}) {
+  return (
+    <ul className="grid list-none gap-4 sm:grid-cols-2">
+      {products.map((p) => {
+        const segs = pathSegmentsForProduct(p)
+        return (
+          <li key={p.id} className="list-none">
+            <StockProductLine
+              product={p}
+              pathSegments={segs}
+              ticketQty={ticketQty(p.id)}
+              onInc={() => onAdjust(p, segs, 1)}
+              onDec={() => onAdjust(p, segs, -1)}
+            />
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
+
+export function StockMozo({
+  categories,
   collapseTick = 0,
   expandTick = 0,
   bulkLockRef,
   onUserOpenedPanel,
 }: {
-  products: MozoProduct[]
+  categories: CategoryRow[]
   collapseTick?: number
   expandTick?: number
   bulkLockRef?: MutableRefObject<boolean>
@@ -36,41 +289,58 @@ export function StockMozo({
 
   const catalogRef = useRef<HTMLDetailsElement>(null)
   const ticketRef = useRef<HTMLDetailsElement>(null)
+  const treeRootRef = useRef<HTMLDivElement>(null)
+
+  const sortedCatalog = useMemo(() => sortCatalogLikeStore(categories), [categories])
+  const visibleTree = useMemo(() => filterStockTree(sortedCatalog, q), [sortedCatalog, q])
+  const productCount = useMemo(() => countProductsInTree(visibleTree), [visibleTree])
+  const totalInCatalog = useMemo(() => countProductsInTree(sortedCatalog), [sortedCatalog])
+
+  const ticketQty = useCallback(
+    (productId: string) => basket[productId]?.qty ?? 0,
+    [basket],
+  )
+
+  const adjustTicket = useCallback(
+    (product: ProductRow, pathSegments: [string, string, string | null], delta: number) => {
+      const mozo = toMozoProduct(product, pathSegments)
+      if (delta === 0) return
+      setBasket((prev) => {
+        const cur = prev[mozo.id]
+        const currentQty = cur?.qty ?? 0
+        const next = currentQty + delta
+        if (next <= 0) {
+          const { [mozo.id]: _, ...rest } = prev
+          return rest
+        }
+        if (next > mozo.stock_quantity) return prev
+        return { ...prev, [mozo.id]: { product: mozo, qty: next } }
+      })
+    },
+    [],
+  )
 
   useEffect(() => {
     if (collapseTick === 0) return
     catalogRef.current?.removeAttribute('open')
     ticketRef.current?.removeAttribute('open')
+    treeRootRef.current?.querySelectorAll('details[data-stock-branch]').forEach((el) => {
+      el.removeAttribute('open')
+    })
   }, [collapseTick])
 
   useEffect(() => {
     if (expandTick === 0) return
     if (catalogRef.current) catalogRef.current.open = true
     if (ticketRef.current) ticketRef.current.open = true
+    treeRootRef.current?.querySelectorAll('details[data-stock-branch]').forEach((el) => {
+      ;(el as HTMLDetailsElement).open = true
+    })
   }, [expandTick])
 
   function panelToggle(e: React.SyntheticEvent<HTMLDetailsElement>) {
     if (!onUserOpenedPanel || !bulkLockRef) return
     if (e.currentTarget.open && !bulkLockRef.current) onUserOpenedPanel()
-  }
-
-  const filtered = useMemo(() => {
-    const s = q.trim().toLowerCase()
-    if (!s) return products
-    return products.filter(
-      (p) =>
-        p.name.toLowerCase().includes(s) || p.pathLabel.toLowerCase().includes(s),
-    )
-  }, [products, q])
-
-  function addOne(p: MozoProduct) {
-    if (p.stock_quantity < 1) return
-    setBasket((prev) => {
-      const cur = prev[p.id]
-      const nextQ = (cur?.qty ?? 0) + 1
-      if (nextQ > p.stock_quantity) return prev
-      return { ...prev, [p.id]: { product: p, qty: nextQ } }
-    })
   }
 
   function setQty(id: string, qty: number) {
@@ -111,11 +381,14 @@ export function StockMozo({
     window.location.reload()
   }
 
+  const countLabel =
+    q.trim().length > 0 ? `${productCount} / ${totalInCatalog}` : String(productCount)
+
   return (
     <section className="rounded-xl border border-zinc-800 bg-zinc-900/40 p-4">
       <h2 className="text-lg font-semibold text-amber-100">Venta en persona</h2>
       <p className="mt-1 text-xs text-zinc-500">
-        Tocá productos para sumar al ticket. Confirma para descontar stock (sin cobro en esta pantalla).
+        Misma selección que la tienda (+/−); lo que sumás va al ticket actual (venta en persona).
       </p>
 
       <details
@@ -126,16 +399,9 @@ export function StockMozo({
       >
         <summary className="catalog-accordion-summary flex cursor-pointer list-none items-center justify-between gap-2 rounded-t-lg border-b border-zinc-800 bg-zinc-950/60 px-3 py-2.5 text-sm font-medium text-zinc-200 transition hover:bg-zinc-900/80">
           <span>
-            Catálogo <span className="text-zinc-500">({filtered.length})</span>
+            Catálogo <span className="text-zinc-500">({countLabel})</span>
           </span>
-          <svg
-            className="h-4 w-4 shrink-0 text-zinc-500 transition-transform duration-200 ease-out group-open:rotate-180"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            aria-hidden
-          >
-            <path d="M5.23 7.21a.75.75 0 011.06.02L10 11.17l3.71-3.94a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" />
-          </svg>
+          {chevron()}
         </summary>
         <div className="space-y-3 p-3">
           <div>
@@ -148,39 +414,153 @@ export function StockMozo({
               type="text"
               autoComplete="off"
               className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
-              placeholder="Buscar producto…"
+              placeholder="Buscar por nombre o rubro…"
               value={q}
               onChange={(e) => setQ(e.target.value)}
             />
           </div>
 
-          <div className="max-h-64 overflow-y-auto rounded border border-zinc-800">
-            {filtered.map((p) => {
-              const img = getPublicUrlFromPath(p.image_path)
-              return (
-                <button
-                  key={p.id}
-                  type="button"
-                  disabled={p.stock_quantity < 1}
-                  onClick={() => addOne(p)}
-                  className="flex w-full items-center gap-3 border-b border-zinc-800 px-2 py-2 text-left text-sm hover:bg-zinc-800/80 disabled:opacity-40"
-                >
-                  <div className="h-10 w-10 shrink-0 overflow-hidden rounded bg-zinc-800">
-                    {img ? (
-                      // eslint-disable-next-line @next/next/no-img-element
-                      <img src={img} alt="" className="h-full w-full object-cover" />
-                    ) : null}
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="font-medium">{p.name}</div>
-                    <div className="text-[10px] text-zinc-500">{p.pathLabel}</div>
-                    <div className="text-xs text-amber-200">
-                      {formatMoneyArs(p.price)} · stock {p.stock_quantity}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
+          <div
+            ref={treeRootRef}
+            className="max-h-[min(70vh,28rem)] overflow-y-auto rounded border border-zinc-800 bg-zinc-950/40 p-2"
+          >
+            {visibleTree.length === 0 ? (
+              <p className="px-2 py-6 text-center text-sm text-zinc-500">
+                {sortedCatalog.length === 0
+                  ? 'No hay categorías cargadas en el catálogo.'
+                  : 'Ningún producto coincide con la búsqueda.'}
+              </p>
+            ) : (
+              <div className="space-y-3">
+                {visibleTree.map((cat) => {
+                  const catProductCount = cat.subcategories.reduce(
+                    (n, s) => n + countProductsInSub(s),
+                    0,
+                  )
+                  return (
+                    <details key={cat.id} data-stock-branch className={frameCategory}>
+                      <summary className={summaryCategory}>
+                        <span className="min-w-0 text-left">
+                          <span className="text-[10px] font-semibold uppercase tracking-wider text-rose-300/90">
+                            Categoría
+                          </span>
+                          <span className="mt-0.5 block truncate text-base font-semibold text-rose-50">
+                            {upperCategoryLabel(cat.name)}
+                          </span>
+                        </span>
+                        <span className="flex shrink-0 items-center gap-2">
+                          {catProductCount > 0 ? (
+                            <span
+                              className={storeAccordionCountCategory}
+                              title={`${catProductCount} producto${catProductCount === 1 ? '' : 's'}`}
+                            >
+                              {catProductCount}
+                            </span>
+                          ) : null}
+                          {chevron()}
+                        </span>
+                      </summary>
+                      <div className="space-y-2 border-t border-rose-900/20 bg-zinc-950/30 px-2 py-3">
+                        {cat.subcategories.map((sub) => {
+                          const nSub = countProductsInSub(sub)
+                          return (
+                            <details key={sub.id} data-stock-branch className={frameSub}>
+                              <summary className={summarySub}>
+                                <span className="min-w-0 text-left">
+                                  <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
+                                    Subcategoría
+                                  </span>
+                                  <span className="mt-0.5 block truncate text-sm font-medium text-zinc-100">
+                                    {upperCategoryLabel(sub.name)}
+                                  </span>
+                                </span>
+                                <span className="flex shrink-0 items-center gap-2">
+                                  {nSub > 0 ? (
+                                    <span
+                                      className={storeAccordionCountSub}
+                                      title={`${nSub} producto${nSub === 1 ? '' : 's'}`}
+                                    >
+                                      {nSub}
+                                    </span>
+                                  ) : null}
+                                  {chevron()}
+                                </span>
+                              </summary>
+                              <div className="space-y-4 border-t border-zinc-800/50 bg-zinc-950/40 px-2 py-3 sm:px-3">
+                                {sub.products.length > 0 ? (
+                                  <StockProductGrid
+                                    products={sub.products}
+                                    pathSegmentsForProduct={() => [cat.name, sub.name, null]}
+                                    ticketQty={ticketQty}
+                                    onAdjust={adjustTicket}
+                                  />
+                                ) : null}
+                                {(sub.subsubcategorias ?? []).length > 0 ? (
+                                  <div
+                                    className={
+                                      sub.products.length > 0
+                                        ? 'space-y-3 border-t border-zinc-800/50 pt-3'
+                                        : 'space-y-3'
+                                    }
+                                  >
+                                    {(sub.subsubcategorias ?? []).map((ss) => {
+                                      const nSs = ss.products.length
+                                      return (
+                                        <details
+                                          key={ss.id}
+                                          data-stock-branch
+                                          className={frameSubsub}
+                                        >
+                                          <summary className={summarySubsub}>
+                                            <span className="min-w-0 text-left">
+                                              <span className="text-[9px] font-semibold uppercase tracking-wide text-rose-400/85">
+                                                Sub-sub
+                                              </span>
+                                              <span className="mt-0.5 block truncate text-xs font-medium text-rose-100">
+                                                {upperCategoryLabel(ss.name)}
+                                              </span>
+                                            </span>
+                                            <span className="flex shrink-0 items-center gap-1.5">
+                                              {nSs > 0 ? (
+                                                <span
+                                                  className={storeAccordionCountSubsub}
+                                                  title={`${nSs} producto${nSs === 1 ? '' : 's'}`}
+                                                >
+                                                  {nSs}
+                                                </span>
+                                              ) : null}
+                                              {chevron()}
+                                            </span>
+                                          </summary>
+                                          <div className="border-t border-rose-900/20 bg-zinc-950/25 px-1 py-3 sm:px-2">
+                                            {ss.products.length > 0 ? (
+                                              <StockProductGrid
+                                                products={ss.products}
+                                                pathSegmentsForProduct={() => [
+                                                  cat.name,
+                                                  sub.name,
+                                                  ss.name,
+                                                ]}
+                                                ticketQty={ticketQty}
+                                                onAdjust={adjustTicket}
+                                              />
+                                            ) : null}
+                                          </div>
+                                        </details>
+                                      )
+                                    })}
+                                  </div>
+                                ) : null}
+                              </div>
+                            </details>
+                          )
+                        })}
+                      </div>
+                    </details>
+                  )
+                })}
+              </div>
+            )}
           </div>
         </div>
       </details>
@@ -244,6 +624,9 @@ export function StockMozo({
           >
             {busy ? 'Guardando…' : 'Confirmar venta (descontar stock)'}
           </button>
+          <p className="mt-2 text-[11px] leading-relaxed text-zinc-500">
+            Al confirmar, el servidor descuenta el stock de cada producto en la base de datos.
+          </p>
         </div>
       </details>
     </section>

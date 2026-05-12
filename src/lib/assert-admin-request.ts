@@ -7,6 +7,6 @@ export async function getAdminEmailFromRequest() {
     data: { user },
   } = await supabase.auth.getUser()
   if (!user?.email) return null
-  const { data } = await supabase.from('admin_users').select('email').eq('email', user.email).maybeSingle()
-  return data?.email ?? null
+  const { data: ok } = await supabase.rpc('current_user_is_admin')
+  return ok === true ? user.email : null
 }

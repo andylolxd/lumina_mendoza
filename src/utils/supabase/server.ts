@@ -1,4 +1,5 @@
 import { createServerClient } from '@supabase/ssr'
+import type { CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
@@ -8,6 +9,8 @@ const supabaseKey =
   process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
 export type CookieStore = Awaited<ReturnType<typeof cookies>>
+
+type CookiesToSet = { name: string; value: string; options?: CookieOptions }
 
 export const createClient = (cookieStore: CookieStore) => {
   if (!supabaseUrl || !supabaseKey) {
@@ -20,7 +23,7 @@ export const createClient = (cookieStore: CookieStore) => {
       getAll() {
         return cookieStore.getAll()
       },
-      setAll(cookiesToSet) {
+      setAll(cookiesToSet: CookiesToSet[]) {
         try {
           cookiesToSet.forEach(({ name, value, options }) =>
             cookieStore.set(name, value, options),

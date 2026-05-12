@@ -159,3 +159,30 @@ export async function fetchCategoriesWithNested(
     subcategories: subsByCategory.get(c.id) ?? [],
   }))
 }
+
+export type ProductWithStorePath = {
+  product: ProductRow
+  /** Segmentos para `formatCatalogPath` (sub-sub `null` si el producto va directo bajo la subcategoría). */
+  pathSegments: [string, string, string | null]
+}
+
+/**
+ * Recorre el árbol como la tienda: categoría → subcategoría → productos directos → sub-subcategorías → productos.
+ * Orden por `sort_order` en cada nivel (igual que `Storefront`); no filtra por `active` (panel stock).
+ */
+export function flattenProductsWithStorePaths(categories: CategoryRow[]): ProductWithStorePath[] {
+  const out: ProductWithStorePath[] = []
+  for (const c of sortByOrder(categories)) {
+    for (const s of sortByOrder(c.subcategories ?? [])) {
+      for (const p of sortByOrder(s.products)) {
+        out.push({ product: p, pathSegments: [c.name, s.name, null] })
+      }
+      for (const ss of sortByOrder(s.subsubcategorias)) {
+        for (const p of sortByOrder(ss.products)) {
+          out.push({ product: p, pathSegments: [c.name, s.name, ss.name] })
+        }
+      }
+    }
+  }
+  return out
+}
