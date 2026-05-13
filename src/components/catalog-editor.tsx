@@ -1330,11 +1330,7 @@ function SubcategorySection({
             onAdd={onAddSubsub}
           />
 
-          {requireNumericSize ? (
-            <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-amber-200/85">
-              En anillos, los productos nuevos se cargan dentro de cada sub-subcategoría.
-            </p>
-          ) : (
+          {requireNumericSize ? null : (
             <>
               <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-white">
                 Productos en esta subcategoría
