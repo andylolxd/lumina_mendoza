@@ -50,6 +50,14 @@ type ProductVariantPatch = Partial<{
 }>
 
 type CatalogCommitOpts = { skipRefresh?: boolean; skipBusy?: boolean }
+type AddProductOpts = { requireNumericSize?: boolean }
+type ProductDraftFields = {
+  name: string
+  price: string
+  stock: string
+  size?: string
+  description: string
+}
 
 type VariantCatalogActions = {
   addVariant: (
@@ -68,6 +76,14 @@ function formatSupabaseError(err: { message?: string; code?: string; details?: s
   return parts.join('\n')
 }
 
+function isRingCategoryName(name: string) {
+  return upperCategoryLabel(name) === 'ANILLOS'
+}
+
+function sanitizeNumericSizeLabel(value: string) {
+  return value.replace(/\D+/g, '')
+}
+
 const collapseAllBtnClass =
   'shrink-0 rounded-lg border border-zinc-600 bg-zinc-900 px-3 py-1.5 text-xs font-medium text-white shadow-sm transition hover:border-zinc-500 hover:bg-zinc-800 disabled:opacity-50'
 
@@ -81,6 +97,12 @@ const catalogDeleteBtnClassCompact =
 /** Mismo borde que eliminar; fondo gris oscuro. */
 const catalogSaveBtnClassCompact =
   'rounded-lg border-2 border-red-500/60 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-zinc-100 shadow-sm transition hover:border-red-400 hover:bg-zinc-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/50 active:scale-[0.98]'
+
+function getCatalogProductSaveBtnClass(enabled: boolean) {
+  return enabled
+    ? 'rounded-lg border-2 border-amber-400 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-amber-100 shadow-sm transition hover:border-amber-300 hover:bg-zinc-800 hover:text-white focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-400/45 active:scale-[0.98] disabled:opacity-50'
+    : 'rounded-lg border-2 border-zinc-700 bg-zinc-900 px-2.5 py-1 text-[11px] font-medium text-zinc-500 shadow-sm transition disabled:cursor-not-allowed disabled:opacity-60'
+}
 
 /** Plegado de producto en catálogo: botón rectangular compacto (misma línea que el panel). */
 const catalogProductSummarySquareClass =
@@ -561,17 +583,34 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
   async function addProduct(
     subcategoryId: string,
     subsubcategoriaId: string | null,
-    fields: { name: string; price: string; stock: string; description: string },
-  ) {
-    if (!fields.name.trim()) return
+    fields: ProductDraftFields,
+    opts?: AddProductOpts,
+  ): Promise<boolean> {
+    const requireNumericSize = opts?.requireNumericSize ?? false
+    const name = fields.name.trim()
+    if (!name) {
+      alert('El nombre del producto es obligatorio.')
+      return false
+    }
     const price = Number(fields.price.replace(',', '.'))
     const stock = Number.parseInt(fields.stock, 10)
-    if (!Number.isFinite(price) || price < 0) return
-    if (!Number.isFinite(stock) || stock < 0) return
+    if (!Number.isFinite(price) || price < 0) {
+      alert('Precio inválido.')
+      return false
+    }
+    if (!Number.isFinite(stock) || stock < 0) {
+      alert('Stock inválido.')
+      return false
+    }
+    const numericSize = sanitizeNumericSizeLabel(fields.size ?? '')
+    if (requireNumericSize && !numericSize) {
+      alert('En anillos tenés que cargar un talle numérico.')
+      return false
+    }
     setBusy(true)
     const row: Record<string, unknown> = {
       subcategory_id: subcategoryId,
-      name: fields.name.trim(),
+      name,
       description: fields.description.trim() || null,
       price,
       stock_quantity: stock,
@@ -581,14 +620,41 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
     if (subsubcategoriaId) row.subsubcategoria_id = subsubcategoriaId
     else row.subsubcategoria_id = null
 
-    const { error } = await sb.from('products').insert(row)
+    const { data: created, error } = await sb.from('products').insert(row).select('id').maybeSingle()
     if (error) {
-      alert(error.message)
+      alert(formatSupabaseError(error))
       setBusy(false)
-      return
+      return false
+    }
+    if (!created?.id) {
+      alert('No se pudo crear el producto.')
+      setBusy(false)
+      return false
+    }
+    if (requireNumericSize) {
+      const { error: variantError } = await sb.from('product_variants').insert({
+        product_id: created.id,
+        size_label: numericSize,
+        stock_quantity: stock,
+        active: true,
+        sort_order: Date.now() % 100000,
+      })
+      if (variantError) {
+        const { error: rollbackError } = await sb.from('products').delete().eq('id', created.id)
+        alert(
+          'No se pudo crear el talle inicial del anillo, así que el producto no se guardó.\n\n' +
+            formatSupabaseError(variantError) +
+            (rollbackError
+              ? `\n\nAdemás, falló la reversión automática del producto: ${formatSupabaseError(rollbackError)}`
+              : ''),
+        )
+        setBusy(false)
+        return false
+      }
     }
     setBusy(false)
     await refresh()
+    return true
   }
 
   async function updateProduct(id: string, patch: ProductPatch, opts?: CatalogCommitOpts) {
@@ -1001,7 +1067,7 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
           }}
           onAddSubcategory={(name) => addSubcategory(cat.id, name)}
           onAddSubsub={(subId, name) => addSubsubcategoria(subId, name)}
-          onAddProduct={(subId, subsubId, fields) => addProduct(subId, subsubId, fields)}
+          onAddProduct={(subId, subsubId, fields, opts) => addProduct(subId, subsubId, fields, opts)}
           onRequestDeleteSubcategory={(ctx) => setPendingSubcategoryDelete(ctx)}
           onRequestDeleteSubsub={(ctx) => setPendingSubsubDelete(ctx)}
           updateProduct={updateProduct}
@@ -1054,8 +1120,9 @@ function CategorySection({
   onAddProduct: (
     subcategoryId: string,
     subsubcategoriaId: string | null,
-    fields: { name: string; price: string; stock: string; description: string },
-  ) => void
+    fields: ProductDraftFields,
+    opts?: AddProductOpts,
+  ) => Promise<boolean>
   onRequestDeleteSubcategory: (ctx: { id: string; name: string; subsubs: number; products: number }) => void
   onRequestDeleteSubsub: (ctx: { id: string; name: string; products: number }) => void
   updateProduct: (id: string, patch: ProductPatch, opts?: CatalogCommitOpts) => Promise<void>
@@ -1070,6 +1137,7 @@ function CategorySection({
 }) {
   const [open, setOpen] = useState(false)
   const { subs, products } = countCategoryStats(cat)
+  const requireNumericSize = isRingCategoryName(cat.name)
 
   useEffect(() => {
     if (collapseAllTick === 0) return
@@ -1120,7 +1188,9 @@ function CategorySection({
               bulkLockRef={bulkLockRef}
               onUserExpandedSection={onUserExpandedSection}
               onAddSubsub={(name) => onAddSubsub(sub.id, name)}
-              onAddProduct={(subsubId, fields) => onAddProduct(sub.id, subsubId, fields)}
+              onAddProduct={(subsubId, fields) =>
+                onAddProduct(sub.id, subsubId, fields, { requireNumericSize })
+              }
               onRequestDeleteSubcategory={() =>
                 onRequestDeleteSubcategory({
                   id: sub.id,
@@ -1137,6 +1207,7 @@ function CategorySection({
               variantCatalogActions={variantCatalogActions}
               renameSubcategory={renameSubcategory}
               renameSubsubcategoria={renameSubsubcategoria}
+              requireNumericSize={requireNumericSize}
             />
           ))}
         </>
@@ -1164,6 +1235,7 @@ function SubcategorySection({
   variantCatalogActions,
   renameSubcategory,
   renameSubsubcategoria,
+  requireNumericSize,
 }: {
   node: SubcategoryRow
   busy: boolean
@@ -1174,8 +1246,8 @@ function SubcategorySection({
   onAddSubsub: (name: string) => void
   onAddProduct: (
     subsubcategoriaId: string | null,
-    fields: { name: string; price: string; stock: string; description: string },
-  ) => void
+    fields: ProductDraftFields,
+  ) => Promise<boolean>
   onRequestDeleteSubcategory: () => void
   onRequestDeleteSubsub: (ctx: { id: string; name: string; products: number }) => void
   updateProduct: (id: string, patch: ProductPatch, opts?: CatalogCommitOpts) => Promise<void>
@@ -1186,6 +1258,7 @@ function SubcategorySection({
   variantCatalogActions: VariantCatalogActions
   renameSubcategory: (id: string, raw: string) => Promise<boolean>
   renameSubsubcategoria: (id: string, raw: string) => Promise<boolean>
+  requireNumericSize: boolean
 }) {
   const [open, setOpen] = useState(false)
   const nProducts = node.products?.length ?? 0
@@ -1234,7 +1307,11 @@ function SubcategorySection({
           <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-white">
             Productos en esta subcategoría
           </p>
-          <ProductAddForm disabled={busy} onAdd={(f) => onAddProduct(null, f)} />
+          <ProductAddForm
+            disabled={busy}
+            onAdd={(f) => onAddProduct(null, f)}
+            requireNumericSize={requireNumericSize}
+          />
           <ProductList
             products={node.products ?? []}
             busy={busy}
@@ -1244,6 +1321,7 @@ function SubcategorySection({
             uploadGalleryImage={uploadGalleryImage}
             removeGalleryPath={removeGalleryPath}
             variantCatalogActions={variantCatalogActions}
+            requireNumericSize={requireNumericSize}
           />
 
           {(node.subsubcategorias ?? []).map((ss) => (
@@ -1264,6 +1342,7 @@ function SubcategorySection({
               removeGalleryPath={removeGalleryPath}
               variantCatalogActions={variantCatalogActions}
               renameSubsubcategoria={renameSubsubcategoria}
+              requireNumericSize={requireNumericSize}
             />
           ))}
         </>
@@ -1288,6 +1367,7 @@ function SubsubSection({
   removeGalleryPath,
   variantCatalogActions,
   renameSubsubcategoria,
+  requireNumericSize,
 }: {
   node: SubsubcategoriaRow
   busy: boolean
@@ -1295,12 +1375,7 @@ function SubsubSection({
   expandAllTick: number
   bulkLockRef: MutableRefObject<boolean>
   onUserExpandedSection: () => void
-  onAddProduct: (fields: {
-    name: string
-    price: string
-    stock: string
-    description: string
-  }) => void
+  onAddProduct: (fields: ProductDraftFields) => Promise<boolean>
   onRequestDeleteSubsub: (ctx: { id: string; name: string; products: number }) => void
   updateProduct: (id: string, patch: ProductPatch, opts?: CatalogCommitOpts) => Promise<void>
   onRequestDeleteProduct: (ctx: { id: string; name: string; price: number }) => void
@@ -1309,6 +1384,7 @@ function SubsubSection({
   removeGalleryPath: (productId: string, storagePath: string, opts?: CatalogCommitOpts) => Promise<void>
   variantCatalogActions: VariantCatalogActions
   renameSubsubcategoria: (id: string, raw: string) => Promise<boolean>
+  requireNumericSize: boolean
 }) {
   const [open, setOpen] = useState(false)
   const nProducts = node.products?.length ?? 0
@@ -1350,7 +1426,7 @@ function SubsubSection({
       />
       {open ? (
         <>
-          <ProductAddForm disabled={busy} onAdd={onAddProduct} />
+          <ProductAddForm disabled={busy} onAdd={onAddProduct} requireNumericSize={requireNumericSize} />
           <ProductList
             products={node.products ?? []}
             busy={busy}
@@ -1360,6 +1436,7 @@ function SubsubSection({
             uploadGalleryImage={uploadGalleryImage}
             removeGalleryPath={removeGalleryPath}
             variantCatalogActions={variantCatalogActions}
+            requireNumericSize={requireNumericSize}
           />
         </>
       ) : null}
@@ -1378,6 +1455,7 @@ function ProductCatalogRow({
   uploadGalleryImage,
   removeGalleryPath,
   variantCatalogActions,
+  requireNumericSize,
 }: {
   p: ProductRow
   busy: boolean
@@ -1387,10 +1465,11 @@ function ProductCatalogRow({
   uploadGalleryImage: (productId: string, file: File | null, opts?: CatalogCommitOpts) => Promise<void>
   removeGalleryPath: (productId: string, storagePath: string, opts?: CatalogCommitOpts) => Promise<void>
   variantCatalogActions: VariantCatalogActions
+  requireNumericSize: boolean
 }) {
-  const nameRef = useRef<HTMLInputElement>(null)
-  const descRef = useRef<HTMLInputElement>(null)
-  const priceRef = useRef<HTMLInputElement>(null)
+  const [draftName, setDraftName] = useState(p.name)
+  const [draftDescription, setDraftDescription] = useState(p.description ?? '')
+  const [draftPrice, setDraftPrice] = useState(String(Number(p.price)))
   const [newTalle, setNewTalle] = useState('')
   const [newStock, setNewStock] = useState('0')
   const [draftStock, setDraftStock] = useState(p.stock_quantity)
@@ -1412,8 +1491,12 @@ function ProductCatalogRow({
     [p.variants],
   )
   const gallerySig = useMemo(() => (p.image_gallery ?? []).join('|'), [p.image_gallery])
+  const initialGalleryPaths = useMemo(() => normalizeGallery(p.image_gallery), [p.image_gallery])
 
   useEffect(() => {
+    setDraftName(p.name)
+    setDraftDescription(p.description ?? '')
+    setDraftPrice(String(Number(p.price)))
     setDraftVariants(sortOrder(p.variants ?? []).map((v) => ({ ...v })))
     setRemovedVariantIds([])
     setNewTalle('')
@@ -1429,9 +1512,9 @@ function ProductCatalogRow({
       prev.forEach((x) => URL.revokeObjectURL(x.url))
       return []
     })
-    setLocalGalleryPaths(normalizeGallery(p.image_gallery))
+    setLocalGalleryPaths(initialGalleryPaths)
     setRemovedGalleryPaths([])
-  }, [p.id, variantSig, gallerySig, p.stock_quantity, p.active, p.image_path])
+  }, [p.id, p.name, p.description, p.price, variantSig, gallerySig, p.stock_quantity, p.active, p.image_path, initialGalleryPaths])
 
   useEffect(() => {
     if (!mainPreviewUrl) return
@@ -1441,6 +1524,46 @@ function ProductCatalogRow({
   const hasVariants = draftVariants.length > 0
   const serverMainUrl = getPublicUrlFromPath(p.image_path)
   const mainThumbSrc = mainPreviewUrl ?? serverMainUrl
+  const draftVariantSig = useMemo(
+    () =>
+      sortOrder(draftVariants)
+        .map((v) => `${v.id}:${v.size_label}:${v.stock_quantity}:${v.active ? '1' : '0'}`)
+        .join('|'),
+    [draftVariants],
+  )
+  const hasPendingChanges = useMemo(() => {
+    const galleryChanged = localGalleryPaths.join('|') !== initialGalleryPaths.join('|')
+    const variantsChanged = draftVariantSig !== variantSig
+    return (
+      draftName !== p.name ||
+      draftDescription !== (p.description ?? '') ||
+      draftPrice !== String(Number(p.price)) ||
+      (!hasVariants && draftStock !== p.stock_quantity) ||
+      localActive !== p.active ||
+      variantsChanged ||
+      galleryChanged ||
+      pendingMainFile !== null ||
+      pendingGalleryFiles.length > 0
+    )
+  }, [
+    draftDescription,
+    draftName,
+    draftPrice,
+    draftStock,
+    draftVariantSig,
+    hasVariants,
+    initialGalleryPaths,
+    localActive,
+    localGalleryPaths,
+    p.active,
+    p.description,
+    p.name,
+    p.price,
+    p.stock_quantity,
+    pendingGalleryFiles.length,
+    pendingMainFile,
+    variantSig,
+  ])
 
   function pickMainImage(file: File | null) {
     if (!file) return
@@ -1473,7 +1596,8 @@ function ProductCatalogRow({
 
   function appendNewDraftVariant() {
     const stock = Number.parseInt(newStock, 10)
-    if (!newTalle.trim()) {
+    const sizeLabel = requireNumericSize ? sanitizeNumericSizeLabel(newTalle) : newTalle.trim()
+    if (!sizeLabel) {
       alert('Escribí un talle.')
       return
     }
@@ -1487,7 +1611,7 @@ function ProductCatalogRow({
       {
         id,
         product_id: p.id,
-        size_label: newTalle.trim(),
+          size_label: sizeLabel,
         stock_quantity: stock,
         active: true,
         sort_order: Date.now() % 100000,
@@ -1515,22 +1639,28 @@ function ProductCatalogRow({
   }
 
   async function saveEdits() {
-    const name = nameRef.current?.value.trim() ?? ''
+    if (!hasPendingChanges) return
+    const name = draftName.trim()
     if (name.length === 0) {
       alert('El nombre del producto no puede estar vacío.')
       return
     }
-    const descRaw = descRef.current?.value ?? ''
+    const descRaw = draftDescription
     const desc = descRaw.trim() || null
-    const price = Number((priceRef.current?.value ?? '').replace(',', '.'))
+    const price = Number(draftPrice.replace(',', '.'))
     if (!Number.isFinite(price) || price < 0) {
       alert('Precio inválido.')
       return
     }
 
     for (const row of draftVariants) {
-      if (!row.size_label.trim()) {
+      const sizeLabel = requireNumericSize ? sanitizeNumericSizeLabel(row.size_label) : row.size_label.trim()
+      if (!sizeLabel) {
         alert('Ningún talle puede estar vacío.')
+        return
+      }
+      if (requireNumericSize && sizeLabel !== row.size_label) {
+        alert('En anillos los talles solo pueden tener números.')
         return
       }
       if (!Number.isFinite(row.stock_quantity) || row.stock_quantity < 0) {
@@ -1570,13 +1700,14 @@ function ProductCatalogRow({
       setRemovedVariantIds([])
 
       for (const row of draftVariants) {
+        const sizeLabel = requireNumericSize ? sanitizeNumericSizeLabel(row.size_label) : row.size_label.trim()
         if (row.id.startsWith(TEMP_VARIANT_ID_PREFIX)) {
-          await variantCatalogActions.addVariant(p.id, row.size_label.trim(), row.stock_quantity, row.active, batch)
+          await variantCatalogActions.addVariant(p.id, sizeLabel, row.stock_quantity, row.active, batch)
         } else {
           const orig = (p.variants ?? []).find((x) => x.id === row.id)
           if (!orig) continue
           const vpatch: ProductVariantPatch = {}
-          const nl = row.size_label.trim()
+          const nl = sizeLabel
           if (nl !== orig.size_label) vpatch.size_label = nl
           if (row.stock_quantity !== orig.stock_quantity) vpatch.stock_quantity = row.stock_quantity
           if (row.active !== orig.active) vpatch.active = row.active
@@ -1619,25 +1750,28 @@ function ProductCatalogRow({
           <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
             <div className="space-y-2 text-sm">
               <input
-                ref={nameRef}
                 className="w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1"
-                defaultValue={p.name}
+                value={draftName}
+                disabled={busy}
+                onChange={(e) => setDraftName(e.target.value)}
               />
               <input
-                ref={descRef}
                 className="w-full rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-xs text-zinc-400"
-                defaultValue={p.description ?? ''}
+                value={draftDescription}
+                disabled={busy}
                 placeholder="Descripción"
+                onChange={(e) => setDraftDescription(e.target.value)}
               />
               <div className="flex flex-wrap gap-2">
                 <label className="text-xs text-white">
                   Precio
                   <input
-                    ref={priceRef}
                     type="number"
                     step="0.01"
                     className="ml-1 w-24 rounded border border-zinc-700 bg-zinc-950 px-1"
-                    defaultValue={Number(p.price)}
+                    value={draftPrice}
+                    disabled={busy}
+                    onChange={(e) => setDraftPrice(e.target.value)}
                   />
                 </label>
                 {!hasVariants ? (
@@ -1689,7 +1823,16 @@ function ProductCatalogRow({
                             className="w-full min-w-[3rem] rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5"
                             value={v.size_label}
                             disabled={busy}
-                            onChange={(e) => updateDraftVariant(v.id, { size_label: e.target.value, stock_quantity: v.stock_quantity })}
+                            inputMode={requireNumericSize ? 'numeric' : undefined}
+                            pattern={requireNumericSize ? '[0-9]*' : undefined}
+                            onChange={(e) =>
+                              updateDraftVariant(v.id, {
+                                size_label: requireNumericSize
+                                  ? sanitizeNumericSizeLabel(e.target.value)
+                                  : e.target.value,
+                                stock_quantity: v.stock_quantity,
+                              })
+                            }
                           />
                         </td>
                         <td className="py-1 pr-1">
@@ -1739,9 +1882,13 @@ function ProductCatalogRow({
                     Nuevo talle
                     <input
                       value={newTalle}
-                      onChange={(e) => setNewTalle(e.target.value)}
+                      onChange={(e) =>
+                        setNewTalle(requireNumericSize ? sanitizeNumericSizeLabel(e.target.value) : e.target.value)
+                      }
                       placeholder="ej. 14"
                       className="ml-1 w-20 rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5"
+                      inputMode={requireNumericSize ? 'numeric' : undefined}
+                      pattern={requireNumericSize ? '[0-9]*' : undefined}
                       disabled={busy}
                     />
                   </label>
@@ -1869,8 +2016,8 @@ function ProductCatalogRow({
               <div className="flex flex-col gap-1.5 sm:flex-row sm:items-center">
                 <button
                   type="button"
-                  className={catalogSaveBtnClassCompact}
-                  disabled={busy}
+                  className={getCatalogProductSaveBtnClass(hasPendingChanges)}
+                  disabled={busy || !hasPendingChanges}
                   onClick={() => void saveEdits()}
                 >
                   Guardar
@@ -1907,6 +2054,7 @@ function ProductList({
   uploadGalleryImage,
   removeGalleryPath,
   variantCatalogActions,
+  requireNumericSize,
 }: {
   products: ProductRow[]
   busy: boolean
@@ -1916,6 +2064,7 @@ function ProductList({
   uploadGalleryImage: (productId: string, file: File | null, opts?: CatalogCommitOpts) => Promise<void>
   removeGalleryPath: (productId: string, storagePath: string, opts?: CatalogCommitOpts) => Promise<void>
   variantCatalogActions: VariantCatalogActions
+  requireNumericSize: boolean
 }) {
   return (
     <ul className="mt-4 space-y-3">
@@ -1935,6 +2084,7 @@ function ProductList({
             uploadGalleryImage={uploadGalleryImage}
             removeGalleryPath={removeGalleryPath}
             variantCatalogActions={variantCatalogActions}
+            requireNumericSize={requireNumericSize}
           />
         )
       })}
@@ -1999,35 +2149,43 @@ function SubcategoryForm({
 function ProductAddForm({
   disabled,
   onAdd,
+  requireNumericSize = false,
 }: {
   disabled: boolean
-  onAdd: (f: {
-    name: string
-    price: string
-    stock: string
-    description: string
-  }) => void
+  onAdd: (f: ProductDraftFields) => Promise<boolean>
+  requireNumericSize?: boolean
 }) {
   const id = useId()
   const nameId = `${id}-product-name`
   const priceId = `${id}-product-price`
+  const sizeId = `${id}-product-size`
   const stockId = `${id}-product-stock`
   const descId = `${id}-product-description`
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
+  const [size, setSize] = useState('')
   const [stock, setStock] = useState('0')
   const [description, setDescription] = useState('')
+  const canSubmit =
+    name.trim().length > 0 &&
+    price.trim().length > 0 &&
+    stock.trim().length > 0 &&
+    (!requireNumericSize || size.trim().length > 0)
 
   return (
     <form
       className="mt-3 flex flex-col gap-2 rounded border border-dashed border-zinc-700 p-2 sm:flex-row sm:flex-wrap sm:items-end"
       onSubmit={(e) => {
         e.preventDefault()
-        onAdd({ name, price, stock, description })
-        setName('')
-        setPrice('')
-        setStock('0')
-        setDescription('')
+        void (async () => {
+          const ok = await onAdd({ name, price, stock, size, description })
+          if (!ok) return
+          setName('')
+          setPrice('')
+          setSize('')
+          setStock('0')
+          setDescription('')
+        })()
       }}
     >
       <label htmlFor={nameId} className="sr-only">
@@ -2055,6 +2213,24 @@ function ProductAddForm({
         value={price}
         onChange={(e) => setPrice(e.target.value)}
       />
+      {requireNumericSize ? (
+        <>
+          <label htmlFor={sizeId} className="sr-only">
+            Talle
+          </label>
+          <input
+            id={sizeId}
+            name="productSize"
+            inputMode="numeric"
+            pattern="[0-9]*"
+            autoComplete="off"
+            className="w-24 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
+            placeholder="Talle"
+            value={size}
+            onChange={(e) => setSize(sanitizeNumericSizeLabel(e.target.value))}
+          />
+        </>
+      ) : null}
       <label htmlFor={stockId} className="sr-only">
         Stock
       </label>
@@ -2082,7 +2258,7 @@ function ProductAddForm({
       />
       <button
         type="submit"
-        disabled={disabled}
+        disabled={disabled || !canSubmit}
         className="rounded-lg border border-zinc-600 bg-zinc-900 px-2 py-1 text-sm font-medium text-white shadow-sm hover:bg-zinc-800 disabled:opacity-50"
       >
         + Producto
