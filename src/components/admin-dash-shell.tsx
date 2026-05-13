@@ -43,7 +43,7 @@ export function AdminDashShell({ children }: { children: React.ReactNode }) {
   const showEquipo = !isAdminSectionActive(pathname, '/admin/equipo')
 
   return (
-    <div className="min-h-screen text-zinc-100">
+    <div className="flex min-h-screen flex-col text-zinc-100">
       <header className="sticky top-0 z-40 overflow-hidden border-b border-zinc-800/50">
         <div
           className="pointer-events-none absolute inset-0 bg-cover bg-left-top bg-no-repeat"
@@ -108,13 +108,13 @@ export function AdminDashShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
       <StoreCartDrawer open={cartOpen} onClose={() => setCartOpen(false)} title="Tu carrito" />
-      <div className="relative w-full">
+      <div className="relative flex min-h-0 flex-1 flex-col">
         <div
           className="pointer-events-none absolute inset-0 z-0"
           style={storeInfiniteBgLayerStyle}
           aria-hidden
         />
-        <div className="relative z-10 mx-auto max-w-5xl px-4 pb-8 pt-3 sm:pt-4">{children}</div>
+        <div className="relative z-10 mx-auto w-full max-w-5xl flex-1 px-4 pb-8 pt-3 sm:pt-4">{children}</div>
       </div>
     </div>
   )
