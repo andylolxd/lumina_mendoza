@@ -51,12 +51,14 @@ type ProductVariantPatch = Partial<{
 
 type CatalogCommitOpts = { skipRefresh?: boolean; skipBusy?: boolean }
 type AddProductOpts = { requireNumericSize?: boolean }
+type DraftVariantInput = { size: string; stock: string }
 type ProductDraftFields = {
   name: string
   price: string
   stock: string
   size?: string
   description: string
+  variants?: DraftVariantInput[]
 }
 
 type VariantCatalogActions = {
@@ -82,6 +84,13 @@ function isRingCategoryName(name: string) {
 
 function sanitizeNumericSizeLabel(value: string) {
   return value.replace(/\D+/g, '')
+}
+
+function parseNonNegativeIntInput(value: string, emptyValue: number | null = null) {
+  const trimmed = value.trim()
+  if (!trimmed) return emptyValue
+  const parsed = Number.parseInt(trimmed, 10)
+  return Number.isFinite(parsed) && parsed >= 0 ? parsed : null
 }
 
 const collapseAllBtnClass =
@@ -593,18 +602,33 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
       return false
     }
     const price = Number(fields.price.replace(',', '.'))
-    const stock = Number.parseInt(fields.stock, 10)
     if (!Number.isFinite(price) || price < 0) {
       alert('Precio inválido.')
       return false
     }
-    if (!Number.isFinite(stock) || stock < 0) {
-      alert('Stock inválido.')
-      return false
+    const variantInputs = requireNumericSize ? (fields.variants ?? []) : []
+    const parsedVariants = variantInputs
+      .map((variant) => ({
+        sizeLabel: sanitizeNumericSizeLabel(variant.size),
+        stockQuantity: parseNonNegativeIntInput(variant.stock),
+        touched: variant.size.trim().length > 0 || variant.stock.trim().length > 0,
+      }))
+      .filter((variant) => variant.touched)
+    if (requireNumericSize) {
+      if (parsedVariants.length === 0) {
+        alert('En anillos tenés que cargar al menos un talle con stock.')
+        return false
+      }
+      if (parsedVariants.some((variant) => !variant.sizeLabel || variant.stockQuantity === null)) {
+        alert('Cada talle del anillo tiene que tener número y stock.')
+        return false
+      }
     }
-    const numericSize = sanitizeNumericSizeLabel(fields.size ?? '')
-    if (requireNumericSize && !numericSize) {
-      alert('En anillos tenés que cargar un talle numérico.')
+    const stock = requireNumericSize
+      ? parsedVariants.reduce((sum, variant) => sum + (variant.stockQuantity ?? 0), 0)
+      : parseNonNegativeIntInput(fields.stock)
+    if (stock === null) {
+      alert('Stock inválido.')
       return false
     }
     setBusy(true)
@@ -632,24 +656,26 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
       return false
     }
     if (requireNumericSize) {
-      const { error: variantError } = await sb.from('product_variants').insert({
-        product_id: created.id,
-        size_label: numericSize,
-        stock_quantity: stock,
-        active: true,
-        sort_order: Date.now() % 100000,
-      })
-      if (variantError) {
-        const { error: rollbackError } = await sb.from('products').delete().eq('id', created.id)
-        alert(
-          'No se pudo crear el talle inicial del anillo, así que el producto no se guardó.\n\n' +
-            formatSupabaseError(variantError) +
-            (rollbackError
-              ? `\n\nAdemás, falló la reversión automática del producto: ${formatSupabaseError(rollbackError)}`
-              : ''),
-        )
-        setBusy(false)
-        return false
+      for (const variant of parsedVariants) {
+        const { error: variantError } = await sb.from('product_variants').insert({
+          product_id: created.id,
+          size_label: variant.sizeLabel,
+          stock_quantity: variant.stockQuantity,
+          active: true,
+          sort_order: Date.now() % 100000,
+        })
+        if (variantError) {
+          const { error: rollbackError } = await sb.from('products').delete().eq('id', created.id)
+          alert(
+            'No se pudieron crear todos los talles del anillo, así que el producto no se guardó.\n\n' +
+              formatSupabaseError(variantError) +
+              (rollbackError
+                ? `\n\nAdemás, falló la reversión automática del producto: ${formatSupabaseError(rollbackError)}`
+                : ''),
+          )
+          setBusy(false)
+          return false
+        }
       }
     }
     setBusy(false)
@@ -1304,14 +1330,18 @@ function SubcategorySection({
             onAdd={onAddSubsub}
           />
 
-          <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-white">
-            Productos en esta subcategoría
-          </p>
-          <ProductAddForm
-            disabled={busy}
-            onAdd={(f) => onAddProduct(null, f)}
-            requireNumericSize={requireNumericSize}
-          />
+          {requireNumericSize ? (
+            <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-amber-200/85">
+              En anillos, los productos nuevos se cargan dentro de cada sub-subcategoría.
+            </p>
+          ) : (
+            <>
+              <p className="mt-3 text-[10px] font-medium uppercase tracking-wide text-white">
+                Productos en esta subcategoría
+              </p>
+              <ProductAddForm disabled={busy} onAdd={(f) => onAddProduct(null, f)} />
+            </>
+          )}
           <ProductList
             products={node.products ?? []}
             busy={busy}
@@ -1471,8 +1501,8 @@ function ProductCatalogRow({
   const [draftDescription, setDraftDescription] = useState(p.description ?? '')
   const [draftPrice, setDraftPrice] = useState(String(Number(p.price)))
   const [newTalle, setNewTalle] = useState('')
-  const [newStock, setNewStock] = useState('0')
-  const [draftStock, setDraftStock] = useState(p.stock_quantity)
+  const [newStock, setNewStock] = useState('')
+  const [draftStockInput, setDraftStockInput] = useState(p.stock_quantity > 0 ? String(p.stock_quantity) : '')
   const [localActive, setLocalActive] = useState(p.active)
   const [draftVariants, setDraftVariants] = useState<ProductVariantRow[]>(() => sortOrder(p.variants ?? []))
   const [removedVariantIds, setRemovedVariantIds] = useState<string[]>([])
@@ -1500,8 +1530,8 @@ function ProductCatalogRow({
     setDraftVariants(sortOrder(p.variants ?? []).map((v) => ({ ...v })))
     setRemovedVariantIds([])
     setNewTalle('')
-    setNewStock('0')
-    setDraftStock(p.stock_quantity)
+    setNewStock('')
+    setDraftStockInput(p.stock_quantity > 0 ? String(p.stock_quantity) : '')
     setLocalActive(p.active)
     setPendingMainFile(null)
     setMainPreviewUrl((prev) => {
@@ -1522,6 +1552,7 @@ function ProductCatalogRow({
   }, [mainPreviewUrl])
 
   const hasVariants = draftVariants.length > 0
+  const draftStockValue = parseNonNegativeIntInput(draftStockInput, 0)
   const serverMainUrl = getPublicUrlFromPath(p.image_path)
   const mainThumbSrc = mainPreviewUrl ?? serverMainUrl
   const draftVariantSig = useMemo(
@@ -1538,7 +1569,7 @@ function ProductCatalogRow({
       draftName !== p.name ||
       draftDescription !== (p.description ?? '') ||
       draftPrice !== String(Number(p.price)) ||
-      (!hasVariants && draftStock !== p.stock_quantity) ||
+      (!hasVariants && draftStockValue !== p.stock_quantity) ||
       localActive !== p.active ||
       variantsChanged ||
       galleryChanged ||
@@ -1549,7 +1580,8 @@ function ProductCatalogRow({
     draftDescription,
     draftName,
     draftPrice,
-    draftStock,
+    draftStockInput,
+    draftStockValue,
     draftVariantSig,
     hasVariants,
     initialGalleryPaths,
@@ -1595,13 +1627,13 @@ function ProductCatalogRow({
   }
 
   function appendNewDraftVariant() {
-    const stock = Number.parseInt(newStock, 10)
+    const stock = parseNonNegativeIntInput(newStock)
     const sizeLabel = requireNumericSize ? sanitizeNumericSizeLabel(newTalle) : newTalle.trim()
     if (!sizeLabel) {
       alert('Escribí un talle.')
       return
     }
-    if (!Number.isFinite(stock) || stock < 0) {
+    if (stock === null) {
       alert('Stock inválido.')
       return
     }
@@ -1618,7 +1650,7 @@ function ProductCatalogRow({
       },
     ])
     setNewTalle('')
-    setNewStock('0')
+    setNewStock('')
   }
 
   function removeDraftVariant(id: string, sizeLabel: string) {
@@ -1648,8 +1680,13 @@ function ProductCatalogRow({
     const descRaw = draftDescription
     const desc = descRaw.trim() || null
     const price = Number(draftPrice.replace(',', '.'))
+    const nextDraftStock = parseNonNegativeIntInput(draftStockInput, 0)
     if (!Number.isFinite(price) || price < 0) {
       alert('Precio inválido.')
+      return
+    }
+    if (!hasVariants && nextDraftStock === null) {
+      alert('Stock inválido.')
       return
     }
 
@@ -1720,7 +1757,9 @@ function ProductCatalogRow({
       const prevDesc = p.description ?? null
       if (desc !== prevDesc) patch.description = desc
       if (price !== Number(p.price)) patch.price = price
-      if (!hasVariants && draftStock !== p.stock_quantity) patch.stock_quantity = draftStock
+      if (!hasVariants && nextDraftStock !== null && nextDraftStock !== p.stock_quantity) {
+        patch.stock_quantity = nextDraftStock
+      }
       if (localActive !== p.active) patch.active = localActive
 
       if (Object.keys(patch).length > 0) {
@@ -1780,9 +1819,10 @@ function ProductCatalogRow({
                     <input
                       type="number"
                       className="ml-1 w-20 rounded border border-zinc-700 bg-zinc-950 px-1"
-                      value={draftStock}
+                      value={draftStockInput}
+                      placeholder="Stock"
                       min={0}
-                      onChange={(e) => setDraftStock(Number.parseInt(e.target.value, 10) || 0)}
+                      onChange={(e) => setDraftStockInput(e.target.value.replace(/\D+/g, ''))}
                     />
                   </label>
                 ) : null}
@@ -1898,7 +1938,8 @@ function ProductCatalogRow({
                       type="number"
                       min={0}
                       value={newStock}
-                      onChange={(e) => setNewStock(e.target.value)}
+                      onChange={(e) => setNewStock(e.target.value.replace(/\D+/g, ''))}
+                      placeholder="Stock"
                       className="ml-1 w-16 rounded border border-zinc-700 bg-zinc-950 px-1 py-0.5"
                       disabled={busy}
                     />
@@ -2158,19 +2199,39 @@ function ProductAddForm({
   const id = useId()
   const nameId = `${id}-product-name`
   const priceId = `${id}-product-price`
-  const sizeId = `${id}-product-size`
   const stockId = `${id}-product-stock`
   const descId = `${id}-product-description`
   const [name, setName] = useState('')
   const [price, setPrice] = useState('')
-  const [size, setSize] = useState('')
-  const [stock, setStock] = useState('0')
+  const [stock, setStock] = useState('')
   const [description, setDescription] = useState('')
+  const [ringVariants, setRingVariants] = useState<DraftVariantInput[]>([{ size: '', stock: '' }])
+  const filledRingVariants = ringVariants.filter((variant) => variant.size.trim() || variant.stock.trim())
+  const hasInvalidRingVariant = filledRingVariants.some(
+    (variant) =>
+      sanitizeNumericSizeLabel(variant.size).length === 0 || parseNonNegativeIntInput(variant.stock) === null,
+  )
   const canSubmit =
     name.trim().length > 0 &&
     price.trim().length > 0 &&
-    stock.trim().length > 0 &&
-    (!requireNumericSize || size.trim().length > 0)
+    (requireNumericSize
+      ? filledRingVariants.length > 0 && !hasInvalidRingVariant
+      : parseNonNegativeIntInput(stock) !== null)
+
+  function updateRingVariant(index: number, patch: Partial<DraftVariantInput>) {
+    setRingVariants((prev) => prev.map((variant, i) => (i === index ? { ...variant, ...patch } : variant)))
+  }
+
+  function addRingVariantRow() {
+    setRingVariants((prev) => [...prev, { size: '', stock: '' }])
+  }
+
+  function removeRingVariantRow(index: number) {
+    setRingVariants((prev) => {
+      const next = prev.filter((_, i) => i !== index)
+      return next.length > 0 ? next : [{ size: '', stock: '' }]
+    })
+  }
 
   return (
     <form
@@ -2178,13 +2239,19 @@ function ProductAddForm({
       onSubmit={(e) => {
         e.preventDefault()
         void (async () => {
-          const ok = await onAdd({ name, price, stock, size, description })
+          const ok = await onAdd({
+            name,
+            price,
+            stock,
+            description,
+            variants: requireNumericSize ? ringVariants : undefined,
+          })
           if (!ok) return
           setName('')
           setPrice('')
-          setSize('')
-          setStock('0')
+          setStock('')
           setDescription('')
+          setRingVariants([{ size: '', stock: '' }])
         })()
       }}
     >
@@ -2214,36 +2281,67 @@ function ProductAddForm({
         onChange={(e) => setPrice(e.target.value)}
       />
       {requireNumericSize ? (
+        <div className="flex min-w-[220px] flex-1 flex-col gap-2">
+          {ringVariants.map((variant, index) => (
+            <div key={`${id}-ring-variant-${index}`} className="flex flex-wrap items-center gap-2">
+              <input
+                inputMode="numeric"
+                pattern="[0-9]*"
+                autoComplete="off"
+                className="w-24 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
+                placeholder="Talle"
+                value={variant.size}
+                onChange={(e) =>
+                  updateRingVariant(index, { size: sanitizeNumericSizeLabel(e.target.value) })
+                }
+              />
+              <input
+                id={index === 0 ? stockId : undefined}
+                name={index === 0 ? 'productStock' : undefined}
+                inputMode="numeric"
+                autoComplete="off"
+                className="w-24 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
+                placeholder="Stock"
+                value={variant.stock}
+                onChange={(e) => updateRingVariant(index, { stock: e.target.value.replace(/\D+/g, '') })}
+              />
+              {ringVariants.length > 1 ? (
+                <button
+                  type="button"
+                  className="rounded-lg border border-zinc-600 bg-zinc-900 px-2 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-zinc-800"
+                  onClick={() => removeRingVariantRow(index)}
+                >
+                  Quitar
+                </button>
+              ) : null}
+            </div>
+          ))}
+          <button
+            type="button"
+            className="w-fit rounded-lg border border-zinc-600 bg-zinc-900 px-2 py-1 text-xs font-medium text-white shadow-sm transition hover:bg-zinc-800"
+            onClick={addRingVariantRow}
+          >
+            + Otro talle
+          </button>
+        </div>
+      ) : null}
+      {!requireNumericSize ? (
         <>
-          <label htmlFor={sizeId} className="sr-only">
-            Talle
+          <label htmlFor={stockId} className="sr-only">
+            Stock
           </label>
           <input
-            id={sizeId}
-            name="productSize"
+            id={stockId}
+            name="productStock"
             inputMode="numeric"
-            pattern="[0-9]*"
             autoComplete="off"
             className="w-24 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
-            placeholder="Talle"
-            value={size}
-            onChange={(e) => setSize(sanitizeNumericSizeLabel(e.target.value))}
+            placeholder="Stock"
+            value={stock}
+            onChange={(e) => setStock(e.target.value.replace(/\D+/g, ''))}
           />
         </>
       ) : null}
-      <label htmlFor={stockId} className="sr-only">
-        Stock
-      </label>
-      <input
-        id={stockId}
-        name="productStock"
-        inputMode="numeric"
-        autoComplete="off"
-        className="w-24 rounded border border-zinc-700 bg-zinc-950 px-2 py-1 text-sm"
-        placeholder="Stock"
-        value={stock}
-        onChange={(e) => setStock(e.target.value)}
-      />
       <label htmlFor={descId} className="sr-only">
         Descripción (opcional)
       </label>
