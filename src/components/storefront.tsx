@@ -222,44 +222,54 @@ export function Storefront({
                 </p>
               ) : (
                 <>
-                  <div className="flex items-center gap-2 sm:gap-3">
-                    <div
-                      role="region"
-                      aria-label="Promoción por inauguración: 10% OFF, tiempo limitado"
-                      className={inaugurationPromoBannerClass}
-                      style={{
-                        backgroundImage: `url(${INAUGURATION_PROMO_BG})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }}
-                    >
+                  <div className="space-y-2.5 sm:space-y-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
                       <div
-                        className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-amber-950/25"
-                        aria-hidden
-                      />
-                      <div className="relative z-10 min-w-0 leading-snug">
-                        <p className="text-[11px] font-semibold sm:text-sm">
-                          <span className="font-extrabold tracking-tight text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                            🎉 10% OFF por inauguración
-                          </span>
-                          <span className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
-                            {' '}
-                            · tiempo limitado 🎉
-                          </span>
-                        </p>
+                        role="region"
+                        aria-label="Promoción por inauguración: 10% OFF, tiempo limitado"
+                        className={inaugurationPromoBannerClass}
+                        style={{
+                          backgroundImage: `url(${INAUGURATION_PROMO_BG})`,
+                          backgroundSize: 'cover',
+                          backgroundPosition: 'center',
+                        }}
+                      >
+                        <div
+                          className="pointer-events-none absolute inset-0 bg-gradient-to-r from-black/70 via-black/40 to-amber-950/25"
+                          aria-hidden
+                        />
+                        <div className="relative z-10 min-w-0 leading-snug">
+                          <p className="text-[11px] font-semibold sm:text-sm">
+                            <span className="font-extrabold tracking-tight text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                              🎉 10% OFF por inauguración
+                            </span>
+                            <span className="text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.95)]">
+                              {' '}
+                              · tiempo limitado 🎉
+                            </span>
+                          </p>
+                        </div>
+                      </div>
+                      <div className="flex shrink-0 items-center">
+                        {showExpandAll ? (
+                          <button type="button" className={collapseAllBtnClass} onClick={handleExpandAll}>
+                            Abrir todo
+                          </button>
+                        ) : (
+                          <button type="button" className={collapseAllBtnClass} onClick={handleCollapseAll}>
+                            Contraer todo
+                          </button>
+                        )}
                       </div>
                     </div>
-                    <div className="flex shrink-0 items-center">
-                      {showExpandAll ? (
-                        <button type="button" className={collapseAllBtnClass} onClick={handleExpandAll}>
-                          Abrir todo
-                        </button>
-                      ) : (
-                        <button type="button" className={collapseAllBtnClass} onClick={handleCollapseAll}>
-                          Contraer todo
-                        </button>
-                      )}
-                    </div>
+                    <p
+                      className="mx-auto max-w-3xl rounded-xl border border-zinc-600/40 bg-gradient-to-b from-zinc-900/90 via-zinc-950/95 to-zinc-900/90 px-4 py-2.5 text-center text-[10px] font-medium leading-snug tracking-wide text-zinc-200/95 shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_4px_24px_rgba(0,0,0,0.35)] ring-1 ring-rose-500/15 backdrop-blur-sm sm:text-[11px] sm:tracking-[0.12em]"
+                      role="note"
+                    >
+                      <span className="bg-gradient-to-r from-amber-100/95 via-zinc-50 to-amber-100/95 bg-clip-text font-semibold text-transparent">
+                        Todos los accesorios son acero quirúrgico 316L
+                      </span>
+                    </p>
                   </div>
                   <div className="space-y-5 sm:space-y-6">
                     {sortedCategories.map((cat) => (
