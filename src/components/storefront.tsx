@@ -568,7 +568,7 @@ function SubsubStoreSection({
       >
         <span className="min-w-0 text-left">
           <span className="text-[9px] font-semibold uppercase tracking-wider text-rose-400/80">
-            Sub-sub
+            Precio
           </span>
           <span className="mt-0.5 block truncate text-sm font-medium tracking-wide text-rose-100">
             {upperCategoryLabel(node.name)}

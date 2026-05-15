@@ -93,7 +93,7 @@ export function ProductImageLightbox({
                 key={src}
                 src={src}
                 alt=""
-                className="h-full w-full origin-center object-contain transition-opacity duration-300 md:scale-100 scale-[1.08]"
+                className="h-full w-full origin-center object-contain transition-opacity duration-300 md:scale-100 scale-[1.2]"
               />
               {urls.length > 1 ? (
                 <>
