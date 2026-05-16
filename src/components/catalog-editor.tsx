@@ -2,6 +2,7 @@
 
 import { createClient } from '@/lib/supabase/browser'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
+import { computeStoreCatalogTotals } from '@/lib/store-catalog-totals'
 import { normalizeGallery } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
 import {
@@ -116,6 +117,17 @@ function getCatalogProductSaveBtnClass(enabled: boolean) {
 /** Plegado de producto en catálogo: botón rectangular compacto (misma línea que el panel). */
 const catalogProductSummarySquareClass =
   'catalog-accordion-summary inline-flex h-10 min-w-[5.25rem] max-w-[7.5rem] w-auto shrink-0 cursor-pointer list-none flex-col items-center justify-center gap-0.5 rounded border-2 border-red-500/70 bg-zinc-900 px-1.5 py-1 text-center shadow-sm transition hover:border-red-400 hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/55 active:scale-[0.98] group-open:border-red-400 group-open:bg-zinc-900'
+
+const catalogProductSummaryWithStockClass =
+  'catalog-accordion-summary inline-flex h-auto min-h-10 min-w-[5.25rem] max-w-[min(100%,14rem)] w-auto shrink-0 cursor-pointer list-none flex-row items-center justify-start gap-2 rounded border-2 border-red-500/70 bg-zinc-900 px-2 py-1.5 text-left shadow-sm transition hover:border-red-400 hover:bg-zinc-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500/55 active:scale-[0.98] group-open:border-red-400 group-open:bg-zinc-900 sm:max-w-[16rem]'
+
+function catalogProductStockUnits(p: ProductRow): number {
+  const variants = p.variants ?? []
+  if (variants.length > 0) {
+    return variants.reduce((n, v) => n + Math.max(0, v.stock_quantity), 0)
+  }
+  return Math.max(0, p.stock_quantity)
+}
 
 function toggleSectionExpanded(
   setOpen: Dispatch<SetStateAction<boolean>>,
@@ -424,6 +436,7 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
   const router = useRouter()
   const sb = createClient()
   const data = useMemo(() => treeCategories(initial), [initial])
+  const catalogTotals = useMemo(() => computeStoreCatalogTotals(data), [data])
 
   const [catName, setCatName] = useState('')
   const [busy, setBusy] = useState(false)
@@ -1059,6 +1072,34 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
         </button>
       </form>
 
+      {catalogTotals.productCount > 0 ? (
+        <div
+          className="rounded-xl border border-violet-800/45 bg-zinc-950/85 px-4 py-3 shadow-md ring-1 ring-violet-500/20"
+          role="status"
+          aria-label="Resumen de valor del catálogo"
+        >
+          <p className="text-[10px] font-semibold uppercase tracking-[0.14em] text-violet-200/90">
+            Valor del catálogo (productos activos en tienda)
+          </p>
+          <p className="mt-1 text-lg font-semibold tabular-nums text-zinc-50 sm:text-xl">
+            {formatMoneyArs(catalogTotals.stockValue)}
+          </p>
+          <p className="mt-1 text-[11px] leading-snug text-zinc-400">
+            Precio de lista × stock:{' '}
+            <span className="font-medium text-zinc-300">{catalogTotals.unitCount}</span> unidad
+            {catalogTotals.unitCount === 1 ? '' : 'es'} en{' '}
+            <span className="font-medium text-zinc-300">{catalogTotals.productCount}</span> producto
+            {catalogTotals.productCount === 1 ? '' : 's'}
+          </p>
+          <p className="mt-1.5 text-[10px] text-zinc-500">
+            Suma de precios (1 por producto, sin stock):{' '}
+            <span className="tabular-nums text-zinc-400">
+              {formatMoneyArs(catalogTotals.catalogPriceSum)}
+            </span>
+          </p>
+        </div>
+      ) : null}
+
       {data.length > 0 ? (
         <div className="flex justify-end">
           {showExpandAll ? (
@@ -1080,6 +1121,7 @@ export function CatalogEditor({ initial }: { initial: CategoryRow[] }) {
           busy={busy}
           collapseAllTick={collapseAllTick}
           expandAllTick={expandAllTick}
+          showProductStockLabels={!showExpandAll}
           bulkLockRef={bulkLockRef}
           onUserExpandedSection={onUserExpandedSection}
           onRequestDeleteCategory={() => {
@@ -1116,6 +1158,7 @@ function CategorySection({
   busy,
   collapseAllTick,
   expandAllTick,
+  showProductStockLabels,
   bulkLockRef,
   onUserExpandedSection,
   onRequestDeleteCategory,
@@ -1138,6 +1181,7 @@ function CategorySection({
   busy: boolean
   collapseAllTick: number
   expandAllTick: number
+  showProductStockLabels: boolean
   bulkLockRef: MutableRefObject<boolean>
   onUserExpandedSection: () => void
   onRequestDeleteCategory: () => void
@@ -1211,6 +1255,7 @@ function CategorySection({
               busy={busy}
               collapseAllTick={collapseAllTick}
               expandAllTick={expandAllTick}
+              showProductStockLabels={showProductStockLabels}
               bulkLockRef={bulkLockRef}
               onUserExpandedSection={onUserExpandedSection}
               onAddSubsub={(name) => onAddSubsub(sub.id, name)}
@@ -1247,6 +1292,7 @@ function SubcategorySection({
   busy,
   collapseAllTick,
   expandAllTick,
+  showProductStockLabels,
   bulkLockRef,
   onUserExpandedSection,
   onAddSubsub,
@@ -1267,6 +1313,7 @@ function SubcategorySection({
   busy: boolean
   collapseAllTick: number
   expandAllTick: number
+  showProductStockLabels: boolean
   bulkLockRef: MutableRefObject<boolean>
   onUserExpandedSection: () => void
   onAddSubsub: (name: string) => void
@@ -1341,6 +1388,7 @@ function SubcategorySection({
           <ProductList
             products={node.products ?? []}
             busy={busy}
+            showProductStockLabels={showProductStockLabels}
             updateProduct={updateProduct}
             onRequestDeleteProduct={onRequestDeleteProduct}
             uploadImage={uploadImage}
@@ -1357,6 +1405,7 @@ function SubcategorySection({
               busy={busy}
               collapseAllTick={collapseAllTick}
               expandAllTick={expandAllTick}
+              showProductStockLabels={showProductStockLabels}
               bulkLockRef={bulkLockRef}
               onUserExpandedSection={onUserExpandedSection}
               onAddProduct={(fields) => onAddProduct(ss.id, fields)}
@@ -1382,6 +1431,7 @@ function SubsubSection({
   busy,
   collapseAllTick,
   expandAllTick,
+  showProductStockLabels,
   bulkLockRef,
   onUserExpandedSection,
   onAddProduct,
@@ -1399,6 +1449,7 @@ function SubsubSection({
   busy: boolean
   collapseAllTick: number
   expandAllTick: number
+  showProductStockLabels: boolean
   bulkLockRef: MutableRefObject<boolean>
   onUserExpandedSection: () => void
   onAddProduct: (fields: ProductDraftFields) => Promise<boolean>
@@ -1456,6 +1507,7 @@ function SubsubSection({
           <ProductList
             products={node.products ?? []}
             busy={busy}
+            showProductStockLabels={showProductStockLabels}
             updateProduct={updateProduct}
             onRequestDeleteProduct={onRequestDeleteProduct}
             uploadImage={uploadImage}
@@ -1475,6 +1527,7 @@ const TEMP_VARIANT_ID_PREFIX = 'temp-variant-'
 function ProductCatalogRow({
   p,
   busy,
+  showProductStockLabels,
   updateProduct,
   onRequestDeleteProduct,
   uploadImage,
@@ -1485,6 +1538,7 @@ function ProductCatalogRow({
 }: {
   p: ProductRow
   busy: boolean
+  showProductStockLabels: boolean
   updateProduct: (id: string, patch: ProductPatch, opts?: CatalogCommitOpts) => Promise<void>
   onRequestDeleteProduct: (ctx: { id: string; name: string; price: number }) => void
   uploadImage: (productId: string, file: File | null, opts?: CatalogCommitOpts) => Promise<void>
@@ -1548,6 +1602,7 @@ function ProductCatalogRow({
   }, [mainPreviewUrl])
 
   const hasVariants = draftVariants.length > 0
+  const stockUnits = catalogProductStockUnits(p)
   const draftStockValue = parseNonNegativeIntInput(draftStockInput, 0)
   const serverMainUrl = getPublicUrlFromPath(p.image_path)
   const mainThumbSrc = mainPreviewUrl ?? serverMainUrl
@@ -1773,13 +1828,29 @@ function ProductCatalogRow({
     <li className="list-none">
       <details className="group grid grid-cols-1 gap-2 rounded-lg border border-zinc-800/90 bg-zinc-950/25 p-2 open:border-red-500/45 sm:grid-cols-[auto,minmax(0,1fr)] sm:items-start sm:gap-3 sm:p-3">
         <summary
-          className={catalogProductSummarySquareClass}
+          className={
+            showProductStockLabels ? catalogProductSummaryWithStockClass : catalogProductSummarySquareClass
+          }
           title={p.name}
           aria-label={`${p.name}: expandir o contraer edición del producto`}
         >
-          <span className="line-clamp-2 max-h-[2.5rem] w-full break-words text-[9px] font-semibold leading-tight text-zinc-100">
+          <span
+            className={
+              showProductStockLabels
+                ? 'min-w-0 flex-1 break-words text-[9px] font-semibold leading-tight text-zinc-100 line-clamp-2'
+                : 'line-clamp-2 max-h-[2.5rem] w-full break-words text-[9px] font-semibold leading-tight text-zinc-100'
+            }
+          >
             {p.name}
           </span>
+          {showProductStockLabels ? (
+            <span
+              className="shrink-0 rounded border border-amber-500/45 bg-zinc-950 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums leading-none text-amber-200"
+              title={hasVariants ? 'Stock total (suma de talles)' : 'Stock del producto'}
+            >
+              Stock {stockUnits}
+            </span>
+          ) : null}
         </summary>
         <div className="col-span-full min-w-0 rounded-md border border-zinc-800/70 bg-zinc-950/40 p-2 sm:col-span-1 sm:border-l sm:border-t-0 sm:border-zinc-700/50 sm:pl-3">
           <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
@@ -2085,6 +2156,7 @@ function ProductCatalogRow({
 function ProductList({
   products,
   busy,
+  showProductStockLabels,
   updateProduct,
   onRequestDeleteProduct,
   uploadImage,
@@ -2095,6 +2167,7 @@ function ProductList({
 }: {
   products: ProductRow[]
   busy: boolean
+  showProductStockLabels: boolean
   updateProduct: (id: string, patch: ProductPatch, opts?: CatalogCommitOpts) => Promise<void>
   onRequestDeleteProduct: (ctx: { id: string; name: string; price: number }) => void
   uploadImage: (productId: string, file: File | null, opts?: CatalogCommitOpts) => Promise<void>
@@ -2115,6 +2188,7 @@ function ProductList({
             key={`${p.id}:${p.name}:${p.price}:${p.stock_quantity}:${p.active}:${p.description ?? ''}:${p.image_path ?? ''}:${p.image_gallery.join('|')}:${variantKey}`}
             p={p}
             busy={busy}
+            showProductStockLabels={showProductStockLabels}
             updateProduct={updateProduct}
             onRequestDeleteProduct={onRequestDeleteProduct}
             uploadImage={uploadImage}
