@@ -15,6 +15,7 @@ import {
 } from '@/components/product-image-lightbox'
 import { collectProductImagePaths } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
+import { isCategoryHiddenOnStorefront } from '@/lib/store-hidden-categories'
 import { headerNavPillMuted, headerNavPillRose } from '@/lib/store-header-nav'
 import {
   storeCatalogFrameCategoryClass,
@@ -146,7 +147,9 @@ export function Storefront({
   }
 
   const sortedCategories = useMemo((): CategoryView[] => {
-    const mapped = sortByOrder(categories).map((c) => ({
+    const mapped = sortByOrder(categories)
+      .filter((c) => !isCategoryHiddenOnStorefront(c.name))
+      .map((c) => ({
       ...c,
       subcategories: sortByOrder(c.subcategories).map((s) => ({
         ...s,
