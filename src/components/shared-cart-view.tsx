@@ -7,7 +7,7 @@ import { appBaseUrl, getPublicUrlFromPath } from '@/lib/publicUrl'
 import { ProductImageLightbox, type ProductLightboxPayload } from '@/components/product-image-lightbox'
 import { combineWhatsAppParts, splitStoredWhatsApp } from '@/lib/whatsapp-cart-parts'
 import { useRouter } from 'next/navigation'
-import { useEffect, useMemo, useState } from 'react'
+import { type ReactNode, useEffect, useMemo, useState } from 'react'
 
 const MAX_LINE_QTY = 999
 
@@ -29,6 +29,7 @@ export function SharedCartView({
   isAdmin,
   initialCustomerWhatsappE164,
   initialAdminNote = null,
+  footerLinks,
 }: {
   cartId: string
   initialItems: SharedCartItem[]
@@ -38,6 +39,8 @@ export function SharedCartView({
   initialCustomerWhatsappE164: string | null
   /** Nota interna (panel Pedidos); solo editable si el pedido sigue pendiente. */
   initialAdminNote?: string | null
+  /** Enlaces bajo el total (ej. volver al catálogo). */
+  footerLinks?: ReactNode
 }) {
   const router = useRouter()
   const [items, setItems] = useState<SharedCartItem[]>(initialItems)
@@ -263,7 +266,7 @@ export function SharedCartView({
                 <div className="min-w-0 flex-1">
                   <h3 className="text-sm font-semibold leading-snug text-zinc-100">{it.name}</h3>
                   <p className="mt-1 text-xs text-rose-200/90">
-                    {formatMoneyArs(it.unit_price)} c/u · sublínea{' '}
+                    {formatMoneyArs(it.unit_price)} c/u · total{' '}
                     <span className="font-semibold">{formatMoneyArs(it.unit_price * it.quantity)}</span>
                   </p>
                   {canEdit ? (
@@ -303,10 +306,15 @@ export function SharedCartView({
         })}
       </div>
 
-      <p className="mt-6 flex flex-wrap items-baseline justify-between gap-2 border-t border-zinc-800 pt-4 text-base font-semibold text-white">
-        <span>Total</span>
-        <span>{formatMoneyArs(subtotal)}</span>
-      </p>
+      <footer className="mt-6 rounded-xl border border-zinc-700/70 bg-zinc-950/85 px-4 py-4 shadow-lg ring-1 ring-black/30 backdrop-blur-md">
+        <p className="flex flex-wrap items-baseline justify-between gap-2 text-base font-semibold text-zinc-50">
+          <span>Total</span>
+          <span className="tabular-nums">{formatMoneyArs(subtotal)}</span>
+        </p>
+        {footerLinks ? (
+          <div className="mt-4 flex flex-col items-center gap-3 border-t border-zinc-600/50 pt-4">{footerLinks}</div>
+        ) : null}
+      </footer>
 
       {isAdmin && !canEdit && initialAdminNote ? (
         <div className="mt-6 rounded-xl border border-zinc-700 bg-zinc-900/35 p-4">

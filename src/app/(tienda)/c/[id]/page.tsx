@@ -127,6 +127,24 @@ export default async function SharedCartPage({
                 isAdmin={isAdmin}
                 initialCustomerWhatsappE164={customerWhatsappE164}
                 initialAdminNote={adminNote}
+                footerLinks={
+                  <>
+                    {isAdmin ? (
+                      <Link
+                        href="/admin/pedidos"
+                        className="text-sm font-medium text-zinc-100 underline decoration-zinc-400/80 underline-offset-2 hover:decoration-zinc-100"
+                      >
+                        Ir a Pedidos (panel)
+                      </Link>
+                    ) : null}
+                    <Link
+                      href="/"
+                      className="text-sm font-medium text-zinc-100 underline decoration-zinc-400/80 underline-offset-2 hover:decoration-zinc-100"
+                    >
+                      Volver al catálogo
+                    </Link>
+                  </>
+                }
               />
 
               {isAdmin && status === 'accepted' ? (
@@ -138,24 +156,8 @@ export default async function SharedCartPage({
               ) : null}
 
               {isAdmin && status === 'pending' ? <SharedCartAdminBar cartId={id} status={status} /> : null}
-              {isAdmin ? (
-                <p className="mt-6 text-center">
-                  <Link
-                    href="/admin/pedidos"
-                    className="text-sm text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
-                  >
-                    Ir a Pedidos (panel)
-                  </Link>
-                </p>
-              ) : null}
             </>
           )}
-          <Link
-            href="/"
-            className="mt-8 block text-center text-sm text-white underline decoration-white/40 underline-offset-2 hover:decoration-white"
-          >
-            Volver al catálogo
-          </Link>
         </div>
       </div>
     </div>
