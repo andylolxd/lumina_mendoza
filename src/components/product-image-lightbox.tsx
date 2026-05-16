@@ -11,6 +11,17 @@ export type ProductLightboxPayload = {
   price: number
   /** Rutas de storage (no URLs públicas). */
   imagePaths: string[]
+  /** Pulseras / Cadenas: el motivo suele quedar más arriba del centro al hacer zoom. */
+  focusLower?: boolean
+}
+
+export function productLightboxFocusLowerForCategory(categoryName: string): boolean {
+  const k = categoryName
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/\p{M}/gu, '')
+  return k === 'pulseras' || k === 'pulsera' || k === 'cadenas' || k === 'cadena'
 }
 
 export function ProductImageLightbox({
@@ -60,6 +71,13 @@ export function ProductImageLightbox({
   if (!open || !payload || urls.length === 0) return null
 
   const src = urls[index] ?? urls[0]
+  const focusLower = payload.focusLower === true
+  const mainImageClass = focusLower
+    ? 'h-full w-full object-contain object-[center_calc(50%-1cm)] origin-[center_calc(50%-1cm)] transition-opacity duration-300 scale-[1.5] md:scale-100'
+    : 'h-full w-full origin-center object-contain transition-opacity duration-300 scale-[1.5] md:scale-100'
+  const thumbImageClass = focusLower
+    ? 'h-full w-full object-cover object-[center_calc(50%-1cm)]'
+    : 'h-full w-full object-cover'
 
   return (
     <div
@@ -93,7 +111,7 @@ export function ProductImageLightbox({
                 key={src}
                 src={src}
                 alt=""
-                className="h-full w-full origin-center object-contain transition-opacity duration-300 md:scale-100 scale-[1.5]"
+                className={mainImageClass}
               />
               {urls.length > 1 ? (
                 <>
@@ -139,7 +157,7 @@ export function ProductImageLightbox({
                   }`}
                 >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img src={thumb} alt="" className="h-full w-full object-cover" />
+                  <img src={thumb} alt="" className={thumbImageClass} />
                 </button>
               ))}
             </div>

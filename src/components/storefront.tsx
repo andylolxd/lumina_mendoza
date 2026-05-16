@@ -8,7 +8,11 @@ import { StoreSessionLogoutButton } from '@/components/store-session-logout-butt
 import { StoreCartDrawer } from '@/components/store-cart-drawer'
 import { StoreFooter } from '@/components/store-footer'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
-import { ProductImageLightbox, type ProductLightboxPayload } from '@/components/product-image-lightbox'
+import {
+  ProductImageLightbox,
+  productLightboxFocusLowerForCategory,
+  type ProductLightboxPayload,
+} from '@/components/product-image-lightbox'
 import { collectProductImagePaths } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
 import { headerNavPillMuted, headerNavPillRose } from '@/lib/store-header-nav'
@@ -820,6 +824,7 @@ function ProductStoreGrid({
               description: p.description,
               price: unitPrice,
               imagePaths: paths,
+              focusLower: productLightboxFocusLowerForCategory(storeCategoryMeta.name),
             })
           }
           return (
