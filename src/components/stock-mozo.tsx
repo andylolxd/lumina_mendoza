@@ -23,6 +23,11 @@ const stockMozoFrameSubsubClass = storeCatalogFrameSubsubClass.replace(
   'overflow-hidden',
   'overflow-visible',
 )
+/** Árbol de rubros aparte del buscador para no comprimir categorías al expandir. */
+const stockMozoCatalogTreeFrameClass = storeCatalogFrameSubClass.replace(
+  'overflow-hidden',
+  'overflow-visible',
+)
 
 export type MozoProduct = {
   id: string
@@ -332,7 +337,8 @@ export function StockMozo({
         const currentQty = cur?.qty ?? 0
         const next = currentQty + delta
         if (next <= 0) {
-          const { [mozo.id]: _, ...rest } = prev
+          const rest = { ...prev }
+          delete rest[mozo.id]
           return rest
         }
         return { ...prev, [mozo.id]: { product: mozo, qty: next } }
@@ -370,7 +376,8 @@ export function StockMozo({
       if (!cur) return prev
       const qn = Math.max(0, Math.floor(qty))
       if (qn === 0) {
-        const { [id]: _, ...rest } = prev
+        const rest = { ...prev }
+        delete rest[id]
         return rest
       }
       return { ...prev, [id]: { ...cur, qty: qn } }
@@ -437,28 +444,29 @@ export function StockMozo({
           </span>
           {chevron()}
         </summary>
-        <div className="space-y-3 p-3">
-          <div>
-            <label htmlFor="stock-mozo-product-search" className="sr-only">
-              Buscar producto
-            </label>
-            <input
-              id="stock-mozo-product-search"
-              name="stock_mozo_product_search"
-              type="text"
-              autoComplete="off"
-              className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
-              placeholder="Buscar por nombre o rubro…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
+        <div className="p-3">
+          <label htmlFor="stock-mozo-product-search" className="sr-only">
+            Buscar producto
+          </label>
+          <input
+            id="stock-mozo-product-search"
+            name="stock_mozo_product_search"
+            type="text"
+            autoComplete="off"
+            className="w-full rounded border border-zinc-700 bg-zinc-950 px-3 py-2 text-sm"
+            placeholder="Buscar por nombre o rubro…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+      </details>
 
-          <div
-            ref={treeRootRef}
-            className="max-h-[min(70vh,28rem)] overflow-x-visible overflow-y-auto rounded border border-zinc-800 bg-zinc-950/40 p-2 pb-4"
-          >
-            {visibleTree.length === 0 ? (
+      <div className={`mt-3 ${stockMozoCatalogTreeFrameClass}`}>
+        <div
+          ref={treeRootRef}
+          className="overflow-x-visible p-3 pb-4"
+        >
+          {visibleTree.length === 0 ? (
               <p className="px-2 py-6 text-center text-sm text-zinc-500">
                 {sortedCatalog.length === 0
                   ? 'No hay categorías cargadas en el catálogo.'
@@ -597,9 +605,8 @@ export function StockMozo({
                 })}
               </div>
             )}
-          </div>
         </div>
-      </details>
+      </div>
 
       <details
         ref={ticketRef}
