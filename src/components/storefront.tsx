@@ -14,6 +14,7 @@ import { getPublicUrlFromPath } from '@/lib/publicUrl'
 import { headerNavPillMuted, headerNavPillRose } from '@/lib/store-header-nav'
 import {
   storeCatalogFrameCategoryClass,
+  storeCatalogFrameCategoryEllosClass,
   storeCatalogFrameSubClass,
   storeCatalogFrameSubsubClass,
   storeTiendaBackgroundLayerClassName,
@@ -141,7 +142,7 @@ export function Storefront({
   }
 
   const sortedCategories = useMemo((): CategoryView[] => {
-    return sortByOrder(categories).map((c) => ({
+    const mapped = sortByOrder(categories).map((c) => ({
       ...c,
       subcategories: sortByOrder(c.subcategories).map((s) => ({
         ...s,
@@ -152,6 +153,12 @@ export function Storefront({
         })),
       })),
     }))
+    const ellos: CategoryView[] = []
+    const rest: CategoryView[] = []
+    for (const c of mapped) {
+      ;(isEllosCategoryName(c.name) ? ellos : rest).push(c)
+    }
+    return [...rest, ...ellos]
   }, [categories])
 
   return (
@@ -328,6 +335,11 @@ function normalizeCategoryNameKey(name: string): string {
     .replace(/\p{M}/gu, '')
 }
 
+function isEllosCategoryName(name: string): boolean {
+  const k = normalizeCategoryNameKey(name)
+  return k === 'ellos' || k === 'ello'
+}
+
 /**
  * Banners en `public/images/` (copiados desde Desktop/categorias).
  * Varias claves por si en Supabase el nombre está en singular/plural.
@@ -344,6 +356,8 @@ const CATEGORY_HERO_PUBLIC_BY_NAME: Record<string, string> = {
   pulseras: '/images/category-hero-pulseras.png',
   tobillera: '/images/category-hero-tobilleras.png',
   tobilleras: '/images/category-hero-tobilleras.png',
+  ello: '/images/category-hero-ellos.png',
+  ellos: '/images/category-hero-ellos.png',
 }
 
 function pickCategoryHeroPublicUrl(cat: CategoryView): string | null {
@@ -384,6 +398,7 @@ function CategoryStoreDetails({
   const heroStoragePath = heroPublicUrl ? null : pickCategoryHeroImagePath(cat)
   const heroUrl =
     heroPublicUrl ?? (heroStoragePath ? getPublicUrlFromPath(heroStoragePath) : null)
+  const ellosCategory = isEllosCategoryName(cat.name)
 
   return (
     <details
@@ -392,7 +407,7 @@ function CategoryStoreDetails({
       onToggle={(e) => {
         if (e.currentTarget.open && !bulkLockRef.current) onUserOpenedDetail()
       }}
-      className={storeCatalogFrameCategoryClass}
+      className={ellosCategory ? storeCatalogFrameCategoryEllosClass : storeCatalogFrameCategoryClass}
     >
       <summary className={storeCatalogSummaryCategoryClass}>
         {heroUrl ? (
@@ -400,7 +415,11 @@ function CategoryStoreDetails({
           <img
             src={heroUrl}
             alt=""
-            className="pointer-events-none absolute inset-0 h-full w-full object-cover brightness-[1.07] contrast-[1.02]"
+            className={
+              ellosCategory
+                ? 'pointer-events-none absolute left-0 right-0 top-[-2cm] h-[calc(100%+2cm)] w-full object-cover brightness-[1.07] contrast-[1.02]'
+                : 'pointer-events-none absolute inset-0 h-full w-full object-cover brightness-[1.07] contrast-[1.02]'
+            }
           />
         ) : (
           <div
@@ -436,7 +455,13 @@ function CategoryStoreDetails({
           <AccordionChevron className="h-5 w-5 shrink-0 text-amber-100/90 drop-shadow-md sm:h-6 sm:w-6" />
         </span>
       </summary>
-      <div className="border-t border-amber-900/25 bg-zinc-950/50 px-3 py-4 sm:px-4">
+      <div
+        className={
+          ellosCategory
+            ? 'border-t border-purple-950/45 bg-zinc-950/50 px-3 py-4 sm:px-4'
+            : 'border-t border-amber-900/25 bg-zinc-950/50 px-3 py-4 sm:px-4'
+        }
+      >
         {subs.length > 0 ? (
           <div className="space-y-4">
             {subs.map((sub) => (

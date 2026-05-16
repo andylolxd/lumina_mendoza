@@ -29,6 +29,10 @@ export const storeInfiniteBgLayerStyle: CSSProperties = {
 export const storeCatalogFrameCategoryClass =
   'group scroll-mt-24 overflow-hidden rounded-3xl border-2 border-rose-400/70 bg-zinc-900/45 shadow-md shadow-black/35 ring-2 ring-rose-400/25 transition-[border-color,box-shadow,ring-width,ring-color] duration-200'
 
+/** Marco categoría «Ellos» (tienda): morado más oscuro frente al rose general. */
+export const storeCatalogFrameCategoryEllosClass =
+  'group scroll-mt-24 overflow-hidden rounded-3xl border-2 border-purple-950/55 bg-zinc-900/45 shadow-md shadow-purple-950/55 ring-2 ring-purple-900/45 transition-[border-color,box-shadow,ring-width,ring-color] duration-200'
+
 export const storeCatalogFrameSubClass =
   'group overflow-hidden rounded-xl border-2 border-rose-400/70 bg-zinc-900/45 shadow-md shadow-black/25 ring-2 ring-rose-400/25 transition-[border-color,box-shadow,ring-width,ring-color] duration-200'
 
