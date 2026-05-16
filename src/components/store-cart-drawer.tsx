@@ -73,7 +73,7 @@ export function StoreCartDrawer({ open, onClose, title = 'Tu carrito' }: StoreCa
       const cartUrl = `${base}/c/${js.id}`
       const detail = formatWhatsAppDetailFromStoreLines(lines)
       const msg = [
-        '¡Hola! Quiero comprar en Lumina Mendoza:',
+        'Quiero comprar en Lumina Mendoza:',
         '',
         detail,
         '',
@@ -81,7 +81,7 @@ export function StoreCartDrawer({ open, onClose, title = 'Tu carrito' }: StoreCa
         '',
         `Ver mi carrito: ${cartUrl}`,
         '',
-        '_El stock del depósito lo confirma el local al aceptar el pedido._',
+        'Hola ¿Cómo estas? Acabo de realizar mi pedido por la página, queria saber como haces con el tema de la entrega!',
       ].join('\n')
 
       const url = buildStoreWhatsAppUrl(msg)
