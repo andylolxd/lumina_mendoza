@@ -5,6 +5,7 @@ import { formatCatalogPath } from '@/lib/catalog-tree'
 import { formatMoneyArs, upperCategoryLabel } from '@/lib/format'
 import { collectProductImagePaths } from '@/lib/product-images'
 import { getPublicUrlFromPath } from '@/lib/publicUrl'
+import { ProductImageLightbox, type ProductLightboxPayload } from '@/components/product-image-lightbox'
 import {
   storeCatalogFrameCategoryClass,
   storeCatalogFrameSubClass,
@@ -12,6 +13,16 @@ import {
 } from '@/lib/store-theme'
 import type { CategoryRow, ProductRow, SubcategoryRow, SubsubcategoriaRow } from '@/types/catalog'
 import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+
+/** En venta en persona no recortar controles (+/−) dentro de acordeones anidados en móvil. */
+const stockMozoFrameSubClass = storeCatalogFrameSubClass.replace(
+  'overflow-hidden',
+  'overflow-visible',
+)
+const stockMozoFrameSubsubClass = storeCatalogFrameSubsubClass.replace(
+  'overflow-hidden',
+  'overflow-visible',
+)
 
 export type MozoProduct = {
   id: string
@@ -149,19 +160,21 @@ function StockProductLine({
   ticketQty,
   onInc,
   onDec,
+  onOpenPhotos,
 }: {
   product: ProductRow
   pathSegments: [string, string, string | null]
   ticketQty: number
   onInc: () => void
   onDec: () => void
+  onOpenPhotos?: () => void
 }) {
   const mozo = toMozoProduct(product, pathSegments)
   const paths = collectProductImagePaths(product)
   const thumbUrl = paths[0] ? getPublicUrlFromPath(paths[0]) : null
   const maxStock = product.stock_quantity
-  const addBlocked = maxStock < 1 || ticketQty >= maxStock
   const unitPrice = mozo.price
+  const canZoom = paths.length > 0 && onOpenPhotos
 
   return (
     <article className="overflow-visible rounded-lg border border-red-500/45 bg-zinc-950/25 p-2 shadow-md ring-1 ring-red-500/25 sm:p-3">
@@ -169,7 +182,17 @@ function StockProductLine({
         <h3 className="mb-2 text-sm font-medium leading-snug text-zinc-100">{product.name}</h3>
         <div className="flex gap-3">
           {paths.length > 0 ? (
-            <div className="relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-zinc-700">
+            <button
+              type="button"
+              disabled={!canZoom}
+              onClick={canZoom ? onOpenPhotos : undefined}
+              className={`relative h-24 w-24 shrink-0 overflow-hidden rounded-lg bg-zinc-800 ring-1 ring-zinc-700 ${
+                canZoom
+                  ? 'cursor-zoom-in transition hover:ring-rose-500/60 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500/55'
+                  : 'cursor-default'
+              }`}
+              aria-label={canZoom ? `Ver fotos de ${product.name}` : undefined}
+            >
               {thumbUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img src={thumbUrl} alt="" className="h-full w-full object-cover" />
@@ -183,7 +206,7 @@ function StockProductLine({
                   +{paths.length - 1}
                 </span>
               ) : null}
-            </div>
+            </button>
           ) : (
             <div className="relative flex h-24 w-24 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-zinc-800 text-[10px] text-zinc-600">
               sin foto
@@ -217,7 +240,6 @@ function StockProductLine({
               </span>
               <button
                 type="button"
-                disabled={addBlocked}
                 aria-label="Sumar uno al ticket"
                 onClick={onInc}
                 className={plusBtnClass}
@@ -237,24 +259,27 @@ function StockProductGrid({
   pathSegmentsForProduct,
   ticketQty,
   onAdjust,
+  onOpenPhotos,
 }: {
   products: ProductRow[]
   pathSegmentsForProduct: (_p: ProductRow) => [string, string, string | null]
   ticketQty: (productId: string) => number
   onAdjust: (product: ProductRow, pathSegments: [string, string, string | null], delta: number) => void
+  onOpenPhotos: (product: ProductRow) => void
 }) {
   return (
-    <ul className="grid list-none gap-4 sm:grid-cols-2">
+    <ul className="grid list-none gap-4 pb-2 sm:grid-cols-2">
       {products.map((p) => {
         const segs = pathSegmentsForProduct(p)
         return (
-          <li key={p.id} className="list-none">
+          <li key={p.id} className="list-none overflow-visible">
             <StockProductLine
               product={p}
               pathSegments={segs}
               ticketQty={ticketQty(p.id)}
               onInc={() => onAdjust(p, segs, 1)}
               onDec={() => onAdjust(p, segs, -1)}
+              onOpenPhotos={() => onOpenPhotos(p)}
             />
           </li>
         )
@@ -282,6 +307,7 @@ export function StockMozo({
   >({})
   const [busy, setBusy] = useState(false)
   const [msg, setMsg] = useState('')
+  const [lightbox, setLightbox] = useState<ProductLightboxPayload | null>(null)
 
   const catalogRef = useRef<HTMLDetailsElement>(null)
   const ticketRef = useRef<HTMLDetailsElement>(null)
@@ -309,7 +335,6 @@ export function StockMozo({
           const { [mozo.id]: _, ...rest } = prev
           return rest
         }
-        if (next > mozo.stock_quantity) return prev
         return { ...prev, [mozo.id]: { product: mozo, qty: next } }
       })
     },
@@ -348,13 +373,24 @@ export function StockMozo({
         const { [id]: _, ...rest } = prev
         return rest
       }
-      if (qn > cur.product.stock_quantity) return prev
       return { ...prev, [id]: { ...cur, qty: qn } }
     })
   }
 
   const lines = Object.values(basket)
   const total = lines.reduce((s, l) => s + l.product.price * l.qty, 0)
+
+  const openProductPhotos = useCallback((product: ProductRow) => {
+    const paths = collectProductImagePaths(product)
+    if (paths.length === 0) return
+    setLightbox({
+      id: product.id,
+      name: product.name,
+      description: product.description,
+      price: Number(product.price),
+      imagePaths: paths,
+    })
+  }, [])
 
   async function confirmSale() {
     if (lines.length === 0) return
@@ -382,6 +418,11 @@ export function StockMozo({
 
   return (
     <section className={`${storeCatalogFrameSubClass} p-4`}>
+      <ProductImageLightbox
+        open={lightbox != null}
+        payload={lightbox}
+        onClose={() => setLightbox(null)}
+      />
       <h2 className="text-lg font-semibold text-amber-100">Venta en persona</h2>
 
       <details
@@ -415,7 +456,7 @@ export function StockMozo({
 
           <div
             ref={treeRootRef}
-            className="max-h-[min(70vh,28rem)] overflow-y-auto rounded border border-zinc-800 bg-zinc-950/40 p-2"
+            className="max-h-[min(70vh,28rem)] overflow-x-visible overflow-y-auto rounded border border-zinc-800 bg-zinc-950/40 p-2 pb-4"
           >
             {visibleTree.length === 0 ? (
               <p className="px-2 py-6 text-center text-sm text-zinc-500">
@@ -457,7 +498,7 @@ export function StockMozo({
                         {cat.subcategories.map((sub) => {
                           const nSub = countProductsInSub(sub)
                           return (
-                            <details key={sub.id} data-stock-branch className={storeCatalogFrameSubClass}>
+                            <details key={sub.id} data-stock-branch className={stockMozoFrameSubClass}>
                               <summary className={summarySub}>
                                 <span className="min-w-0 text-left">
                                   <span className="text-[10px] font-semibold uppercase tracking-wide text-zinc-500">
@@ -486,6 +527,7 @@ export function StockMozo({
                                     pathSegmentsForProduct={() => [cat.name, sub.name, null]}
                                     ticketQty={ticketQty}
                                     onAdjust={adjustTicket}
+                                    onOpenPhotos={openProductPhotos}
                                   />
                                 ) : null}
                                 {(sub.subsubcategorias ?? []).length > 0 ? (
@@ -502,7 +544,7 @@ export function StockMozo({
                                         <details
                                           key={ss.id}
                                           data-stock-branch
-                                          className={storeCatalogFrameSubsubClass}
+                                          className={stockMozoFrameSubsubClass}
                                         >
                                           <summary className={summarySubsub}>
                                             <span className="min-w-0 text-left">
@@ -525,7 +567,7 @@ export function StockMozo({
                                               {chevron()}
                                             </span>
                                           </summary>
-                                          <div className="border-t border-rose-900/20 bg-zinc-950/25 px-1 py-3 sm:px-2">
+                                          <div className="overflow-visible border-t border-rose-900/20 bg-zinc-950/25 px-2 py-3 pb-5 sm:px-3">
                                             {ss.products.length > 0 ? (
                                               <StockProductGrid
                                                 products={ss.products}
@@ -536,6 +578,7 @@ export function StockMozo({
                                                 ]}
                                                 ticketQty={ticketQty}
                                                 onAdjust={adjustTicket}
+                                                onOpenPhotos={openProductPhotos}
                                               />
                                             ) : null}
                                           </div>
@@ -588,7 +631,6 @@ export function StockMozo({
                     name={`stock_mozo_line_qty_${l.product.id}`}
                     type="number"
                     min={1}
-                    max={l.product.stock_quantity}
                     autoComplete="off"
                     aria-label={`Cantidad de ${l.product.name}`}
                     className="w-14 rounded border border-zinc-700 bg-zinc-950 px-1 text-center text-xs"
